@@ -46,10 +46,10 @@ func handleRequest(response http.ResponseWriter, request *http.Request) {
 	request.URL.Host = url.Host
 	request.URL.Scheme = url.Scheme
 	request.Header.Set("X-Forwarded-Host", request.Header.Get("Host"))
-	request.Host = "Rest in the middle logging proxy"
+	request.Host = url.Host
+	request.Header.Set("User-Agent", "Rest in them middle logging proxy")
 
 	proxy.ServeHTTP(response, request)
-
 }
 
 func logRequest(request *http.Request) (err error) {

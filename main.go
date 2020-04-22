@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -47,12 +48,19 @@ func handleRequest(response http.ResponseWriter, request *http.Request) {
 	request.URL.Scheme = url.Scheme
 	request.Header.Set("X-Forwarded-Host", request.Header.Get("Host"))
 	request.Host = url.Host
-	request.Header.Set("User-Agent", "Rest in them middle logging proxy")
+	request.Header.Set("User-Agent", "Rest in the middle logging proxy")
 
 	proxy.ServeHTTP(response, request)
 }
 
 func logRequest(request *http.Request) (err error) {
+	title := fmt.Sprintf("REQUEST - Method: %s; Path: %s\n", request.Method, request.URL.Path)
+
+	headers := ""
+	for key, element := range request.Header {
+		headers += fmt.Sprintf("%s: %s\n", key, element)
+	}
+
 	bodyString := ""
 	if "POST" == request.Method || "PUT" == request.Method || "PATCH" == request.Method {
 		bodyBytes, err := ioutil.ReadAll(request.Body)
@@ -62,15 +70,23 @@ func logRequest(request *http.Request) (err error) {
 		}
 
 		request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-		bodyString = "; Content: " + string(bodyBytes)
+
+		bodyString = fmt.Sprintf("Content: %s\n", string(bodyBytes))
 	}
 
-	log.Printf("REQUEST - Method: %s; Path: %s%s\n", request.Method, request.URL.Path, bodyString)
+	log.Printf("%s%s%s", title, headers, bodyString)
 
 	return err
 }
 
 func logResponse(response *http.Response) (err error) {
+	title := fmt.Sprintf("RESPONSE - Code: %d\n", response.StatusCode)
+
+	headers := ""
+	for key, element := range response.Header {
+		headers += fmt.Sprintf("%s: %s\n", key, element)
+	}
+
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -78,8 +94,10 @@ func logResponse(response *http.Response) (err error) {
 	}
 
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-	bodyString := string(bodyBytes)
-	log.Printf("RESPONSE - Code: %d; Content: %s\n", response.StatusCode, bodyString)
+
+	bodyString := fmt.Sprintf("Content: %s\n", string(bodyBytes))
+
+	log.Printf("%s%s%s", title, headers, bodyString)
 
 	return err
 }

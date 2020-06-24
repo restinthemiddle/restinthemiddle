@@ -54,7 +54,13 @@ func handleRequest(response http.ResponseWriter, request *http.Request) {
 }
 
 func logRequest(request *http.Request) (err error) {
-	title := fmt.Sprintf("REQUEST - Method: %s; Path: %s\n", request.Method, request.URL.Path)
+	query := ""
+	rawQuery := request.URL.RawQuery
+	if len(rawQuery) > 0 {
+		query = fmt.Sprintf("?%s", rawQuery)
+	}
+
+	title := fmt.Sprintf("REQUEST - Method: %s; Path: %s%s\n", request.Method, request.URL.Path, query)
 
 	headers := ""
 	for key, element := range request.Header {

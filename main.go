@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 )
 
 func getEnv(key, fallback string) string {
@@ -40,15 +41,15 @@ func logSetup() {
 func handleRequest(response http.ResponseWriter, request *http.Request) {
 	url, _ := getTargetURL()
 
-	logRequest(request)
+	// logRequest(request)
 
-	proxy := httputil.NewSingleHostReverseProxy(url)
+	proxy := newSingleHostReverseProxy(url)
 	proxy.ModifyResponse = logResponse
-	request.URL.Host = url.Host
-	request.URL.Scheme = url.Scheme
-	request.Header.Set("X-Forwarded-Host", request.Header.Get("Host"))
-	request.Host = url.Host
-	request.Header.Set("User-Agent", "Rest in the middle logging proxy")
+	// request.URL.Host = url.Host
+	// request.URL.Scheme = url.Scheme
+	// request.Header.Set("X-Forwarded-Host", request.Header.Get("Host"))
+	// request.Host = url.Host
+	// request.Header.Set("User-Agent", "Rest in the middle logging proxy")
 
 	proxy.ServeHTTP(response, request)
 }
@@ -60,7 +61,7 @@ func logRequest(request *http.Request) (err error) {
 		query = fmt.Sprintf("?%s", rawQuery)
 	}
 
-	title := fmt.Sprintf("REQUEST - Method: %s; Path: %s%s\n", request.Method, request.URL.Path, query)
+	title := fmt.Sprintf("REQUEST - Method: %s; URL: %s://%s; Path: %s%s\n", request.Method, request.URL.Scheme, request.URL.Host, request.URL.Path, query)
 
 	headers := ""
 	for key, element := range request.Header {
@@ -115,4 +116,41 @@ func main() {
 	if err := http.ListenAndServe(getListenAddress(), nil); err != nil {
 		panic(err)
 	}
+}
+
+func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
+	targetQuery := target.RawQuery
+	director := func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+
+		password, passwordIsSet := target.User.Password()
+		if passwordIsSet {
+			req.SetBasicAuth(target.User.Username(), password)
+		}
+
+		req.Header.Set("User-Agent", "Rest in the middle logging proxy")
+		logRequest(req)
+	}
+
+	return &httputil.ReverseProxy{Director: director}
+}
+
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
 }

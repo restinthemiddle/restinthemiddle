@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+var targetURL *url.URL
+
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
@@ -39,9 +41,7 @@ func logSetup() {
 }
 
 func handleRequest(response http.ResponseWriter, request *http.Request) {
-	url, _ := getTargetURL()
-
-	proxy := newSingleHostReverseProxy(url)
+	proxy := newSingleHostReverseProxy(targetURL)
 	proxy.ModifyResponse = logResponse
 
 	proxy.ServeHTTP(response, request)
@@ -103,6 +103,8 @@ func logResponse(response *http.Response) (err error) {
 }
 
 func main() {
+	targetURL, _ = getTargetURL()
+
 	logSetup()
 
 	http.HandleFunc("/", handleRequest)

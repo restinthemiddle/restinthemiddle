@@ -41,15 +41,8 @@ func logSetup() {
 func handleRequest(response http.ResponseWriter, request *http.Request) {
 	url, _ := getTargetURL()
 
-	// logRequest(request)
-
 	proxy := newSingleHostReverseProxy(url)
 	proxy.ModifyResponse = logResponse
-	// request.URL.Host = url.Host
-	// request.URL.Scheme = url.Scheme
-	// request.Header.Set("X-Forwarded-Host", request.Header.Get("Host"))
-	// request.Host = url.Host
-	// request.Header.Set("User-Agent", "Rest in the middle logging proxy")
 
 	proxy.ServeHTTP(response, request)
 }
@@ -123,6 +116,8 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
+		req.Header.Set("X-Forwarded-Host", target.Host)
+		req.Host = target.Host
 		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
 
 		if targetQuery == "" || req.URL.RawQuery == "" {

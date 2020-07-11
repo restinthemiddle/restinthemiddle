@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,6 +13,12 @@ import (
 	"strings"
 )
 
+// Config represents the configuration
+type Config struct {
+	Headers map[string]string 
+}
+
+var config Config
 var targetURL *url.URL
 
 func getEnv(key, fallback string) string {
@@ -34,10 +41,25 @@ func getTargetURL() (*url.URL, error) {
 	return url.Parse(getTargetHostDsn())
 }
 
+func readConfig() {
+	config.Headers = make(map[string]string)
+
+	config.Headers["User-Agent"] = "Rest in the middle logging proxy"
+	
+	configString := getEnv("CONFIG", "")
+	json.Unmarshal([]byte(configString), &config)
+}
+
 // Log the env variables required for a reverse proxy
 func logSetup() {
 	log.Printf("Listening on: %s\n", getListenAddress())
 	log.Printf("Targeting server on: %s\n", getTargetHostDsn())
+	log.Println("Overwriting headers:")
+	for key, value := range config.Headers {
+		// Each value is an interface{} type, that is type asserted as a string
+		log.Printf("  %s: %s", key, value)
+	}
+
 }
 
 func handleRequest(response http.ResponseWriter, request *http.Request) {
@@ -103,6 +125,8 @@ func logResponse(response *http.Response) (err error) {
 }
 
 func main() {
+    readConfig()
+
 	targetURL, _ = getTargetURL()
 
 	logSetup()
@@ -133,7 +157,10 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 			req.SetBasicAuth(target.User.Username(), password)
 		}
 
-		req.Header.Set("User-Agent", "Rest in the middle logging proxy")
+		for key, value := range config.Headers {
+			req.Header.Set(key, value)
+		}
+	
 		logRequest(req)
 	}
 

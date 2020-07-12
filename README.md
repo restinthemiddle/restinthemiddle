@@ -60,12 +60,13 @@ Restinthemiddle is intended for use in a dockerized environment. Therefore it is
 
 #### Environment variables
 
-* `TARGET_HOST_DSN` (required): The DSN of the target host in the form `schema://username:password@hostname:port/basepath`.
+* `TARGET_HOST_DSN` (required): The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`.
   * `schema` (required) is `http` or `https`
   * `username:password@` is optional and will be evaluated only if both values are set.
   * `hostname` (required)
   * `port` is optional. Standard ports are 80 (http) and 443 (https).
   * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
+  * `query` is optional. If set, `query` will precede the actual request’s query.
 * `PORT` (optional): The port on which Restinthemiddle will be listening to requests. Defaults to `8000`.
 * `CONFIG` (optional): At the moment you can configure extra headers as a JSON string in the form:
 
@@ -88,8 +89,8 @@ We want to log HTTP calls against `www.example.com` over an insecure connection.
 # Set up the proxy
 docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -p 8000:8000 jdschulze/restinthemiddle
 
-# In another terminal window we make the API call against http://www.example.com/api/uptime
-curl -i http://127.0.0.1:8000/api/uptime
+# In another terminal window we make the API call against http://www.example.com/api/visitors
+curl -i http://127.0.0.1:8000/api/visitors
 ```
 
 ### Advanced
@@ -100,19 +101,19 @@ Note that we define a base path in `TARGET_HOST_DSN` that prefixes any subsequen
 
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api -p 8000:8000 jdschulze/restinthemiddle
+docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle
 
-# In another terminal window we make the API call against https://user:pass@www.example.com:4430/api/uptime
-curl -i http://127.0.0.1:8000/uptime
+# In another terminal window we make the API call against https://user:pass@www.example.com:4430/api/visitors?start=1577833200
+curl -i http://127.0.0.1:8000/visitors
 ```
 
 ### With configuration
 
-We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a custom header `X-App-Version: 3.0.0`.
+We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a custom header `X-App-Version: 3.0.0`. No logging shall take place.
 
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -e CONFIG='{"headers":{"X-App-Version":"3.0.0"}}' -p 8000:8000 jdschulze/restinthemiddle:latest
+docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -e CONFIG='{"headers":{"X-App-Version":"3.0.0"},"loggingEnabled":false}' -p 8000:8000 jdschulze/restinthemiddle:latest
 
 # In another terminal window we make the API call against http://www.example.com/home
 curl -i http://127.0.0.1:8000/home

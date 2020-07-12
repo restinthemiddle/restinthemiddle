@@ -15,7 +15,8 @@ import (
 
 // Config represents the configuration
 type Config struct {
-	Headers map[string]string 
+	Headers map[string]string
+	LoggingEnabled bool
 }
 
 var config Config
@@ -44,10 +45,22 @@ func getTargetURL() (*url.URL, error) {
 func readConfig() {
 	config.Headers = make(map[string]string)
 
+	// Set default values
 	config.Headers["User-Agent"] = "Rest in the middle logging proxy"
-	
+	config.LoggingEnabled = true
+
+	// Read configuration
 	configString := getEnv("CONFIG", "")
 	json.Unmarshal([]byte(configString), &config)
+
+	// Read environment variables
+	if value, ok := os.LookupEnv("LOGGING_ENABLED"); ok {
+		if value == "0" {
+			config.LoggingEnabled = false
+		} else {
+			config.LoggingEnabled = true
+		}
+	}
 }
 
 // Log the env variables required for a reverse proxy
@@ -70,6 +83,10 @@ func handleRequest(response http.ResponseWriter, request *http.Request) {
 }
 
 func logRequest(request *http.Request) (err error) {
+	if (!config.LoggingEnabled) {
+		return nil
+	}
+
 	query := ""
 	rawQuery := request.URL.RawQuery
 	if len(rawQuery) > 0 {
@@ -102,6 +119,10 @@ func logRequest(request *http.Request) (err error) {
 }
 
 func logResponse(response *http.Response) (err error) {
+	if (!config.LoggingEnabled) {
+		return nil
+	}
+
 	title := fmt.Sprintf("RESPONSE - Code: %d\n", response.StatusCode)
 
 	headers := ""

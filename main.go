@@ -84,7 +84,7 @@ func logRequest(request *http.Request) (err error) {
 	}
 
 	bodyString := ""
-	if "POST" == request.Method || "PUT" == request.Method || "PATCH" == request.Method {
+	if request.Method == "POST" || request.Method == "PUT" || request.Method == "PATCH" {
 		bodyBytes, err := ioutil.ReadAll(request.Body)
 		if err != nil {
 			log.Fatal(err)

@@ -58,6 +58,12 @@ But there are cases where it makes sense to place it between your browser and th
 
 Restinthemiddle is intended for use in a dockerized environment. Therefore it is configurable entirely via environment variables.
 
+The ascending order of precedence (last wins) is:
+
+* Configuration via file (not implemented yet)
+* Configuration via `CONFIG` environment variable
+* Any other Environment variables
+
 #### Environment variables
 
 * `TARGET_HOST_DSN` (required): The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`.
@@ -68,14 +74,16 @@ Restinthemiddle is intended for use in a dockerized environment. Therefore it is
   * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
   * `query` is optional. If set, `query` will precede the actual request’s query.
 * `PORT` (optional): The port on which Restinthemiddle will be listening to requests. Defaults to `8000`.
-* `CONFIG` (optional): At the moment you can configure extra headers as a JSON string in the form:
+* `LOGGING_ENABLED` (optional): Defaults to `true`.
+* `CONFIG` (optional): At the moment you can configure extra headers and logging as a JSON string in the form:
 
 ```json
 {
     "headers": {
         "X-App-Version": "3.0.0",
         "Another-Header": "Test"
-    }
+    },
+    "loggingEnabled": false
 }
 ```
 

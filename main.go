@@ -55,7 +55,7 @@ func readConfig() {
 
 	// Read environment variables
 	if value, ok := os.LookupEnv("LOGGING_ENABLED"); ok {
-		if value == "0" {
+		if strings.ToLower(value) == "false" {
 			config.LoggingEnabled = false
 		} else {
 			config.LoggingEnabled = true
@@ -67,6 +67,14 @@ func readConfig() {
 func logSetup() {
 	log.Printf("Listening on: %s\n", getListenAddress())
 	log.Printf("Targeting server on: %s\n", getTargetHostDsn())
+	log.Printf("Logging enabled: %s",
+		func() string {
+			if config.LoggingEnabled {
+				return "true"
+				}
+				
+				return "false"
+			}())
 	log.Println("Overwriting headers:")
 	for key, value := range config.Headers {
 		// Each value is an interface{} type, that is type asserted as a string

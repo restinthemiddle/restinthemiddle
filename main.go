@@ -15,7 +15,7 @@ import (
 
 // Config represents the configuration
 type Config struct {
-	Headers map[string]string
+	Headers        map[string]string
 	LoggingEnabled bool
 }
 
@@ -71,10 +71,10 @@ func logSetup() {
 		func() string {
 			if config.LoggingEnabled {
 				return "true"
-				}
-				
-				return "false"
-			}())
+			}
+
+			return "false"
+		}())
 	log.Println("Overwriting headers:")
 	for key, value := range config.Headers {
 		// Each value is an interface{} type, that is type asserted as a string
@@ -91,7 +91,7 @@ func handleRequest(response http.ResponseWriter, request *http.Request) {
 }
 
 func logRequest(request *http.Request) (err error) {
-	if (!config.LoggingEnabled) {
+	if !config.LoggingEnabled {
 		return nil
 	}
 
@@ -127,7 +127,7 @@ func logRequest(request *http.Request) (err error) {
 }
 
 func logResponse(response *http.Response) (err error) {
-	if (!config.LoggingEnabled) {
+	if !config.LoggingEnabled {
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func logResponse(response *http.Response) (err error) {
 }
 
 func main() {
-    readConfig()
+	readConfig()
 
 	targetURL, _ = getTargetURL()
 
@@ -181,15 +181,21 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
 		}
 
+		he := req.Header.Get("Authorization")
+
 		password, passwordIsSet := target.User.Password()
 		if passwordIsSet {
 			req.SetBasicAuth(target.User.Username(), password)
+
+			if he != "" {
+				req.Header.Set("Authorization", fmt.Sprintf("%s, %s", req.Header.Get("Authorization"), he))
+			}
 		}
 
 		for key, value := range config.Headers {
 			req.Header.Set(key, value)
 		}
-	
+
 		logRequest(req)
 	}
 

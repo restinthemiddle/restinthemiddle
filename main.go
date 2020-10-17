@@ -109,7 +109,7 @@ func logRequest(request *http.Request) (err error) {
 	}
 
 	bodyString := ""
-	if request.Method == "POST" || request.Method == "PUT" || request.Method == "PATCH" {
+	if request.ContentLength > 0 {
 		bodyBytes, err := ioutil.ReadAll(request.Body)
 		if err != nil {
 			log.Fatal(err)
@@ -138,15 +138,18 @@ func logResponse(response *http.Response) (err error) {
 		headers += fmt.Sprintf("%s: %s\n", key, element)
 	}
 
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
-		panic(err)
+	bodyString := ""
+	if response.ContentLength > 0 {
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
+
+		response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		bodyString = fmt.Sprintf("Content: %s\n", string(bodyBytes))
 	}
-
-	response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	bodyString := fmt.Sprintf("Content: %s\n", string(bodyBytes))
 
 	log.Printf("%s%s%s", title, headers, bodyString)
 

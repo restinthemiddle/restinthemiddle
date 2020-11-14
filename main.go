@@ -15,6 +15,8 @@ import (
 
 // Config represents the configuration
 type Config struct {
+	TargetHostDsn  string
+	ListenAddress  string
 	Headers        map[string]string
 	LoggingEnabled bool
 }
@@ -26,22 +28,37 @@ func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
 	}
+
 	return fallback
 }
 
 func getListenAddress() string {
 	port := getEnv("PORT", "8000")
+
 	return ":" + port
 }
 
 func getTargetHostDsn() string {
-	return getEnv("TARGET_HOST_DSN", "127.0.0.1:8081")
+	return getEnv("TARGET_HOST_DSN", "http://127.0.0.1:8081")
 }
 
-func getTargetURL() (*url.URL, error) {
-	return url.Parse(getTargetHostDsn())
+func getTargetURL(targetHostDsn string) *url.URL {
+	url, err := url.Parse(targetHostDsn)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return url
 }
 
+func getLoggingEnabled() bool {
+	value := getEnv("LOGGING_ENABLED", "true")
+	if strings.ToLower(value) == "false" {
+		return false
+	}
+
+	return true
+}
 func readConfig() {
 	config.Headers = make(map[string]string)
 
@@ -54,19 +71,17 @@ func readConfig() {
 	json.Unmarshal([]byte(configString), &config)
 
 	// Read environment variables
-	if value, ok := os.LookupEnv("LOGGING_ENABLED"); ok {
-		if strings.ToLower(value) == "false" {
-			config.LoggingEnabled = false
-		} else {
-			config.LoggingEnabled = true
-		}
-	}
+	config.TargetHostDsn = getTargetHostDsn()
+	config.ListenAddress = getListenAddress()
+	config.LoggingEnabled = getLoggingEnabled()
+
+	targetURL = getTargetURL(config.TargetHostDsn)
 }
 
 // Log the env variables required for a reverse proxy
 func logSetup() {
-	log.Printf("Listening on: %s\n", getListenAddress())
-	log.Printf("Targeting server on: %s\n", getTargetHostDsn())
+	log.Printf("Listening on: %s\n", config.ListenAddress)
+	log.Printf("Targeting server on: %s\n", config.TargetHostDsn)
 	log.Printf("Logging enabled: %s",
 		func() string {
 			if config.LoggingEnabled {
@@ -158,14 +173,11 @@ func logResponse(response *http.Response) (err error) {
 
 func main() {
 	readConfig()
-
-	targetURL, _ = getTargetURL()
-
 	logSetup()
 
 	http.HandleFunc("/", handleRequest)
-	if err := http.ListenAndServe(getListenAddress(), nil); err != nil {
-		panic(err)
+	if err := http.ListenAndServe(config.ListenAddress, nil); err != nil {
+		log.Panic(err)
 	}
 }
 
@@ -184,13 +196,16 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
 		}
 
+		// Store the current "Authorization" header(s)
 		he := req.Header.Get("Authorization")
 
 		password, passwordIsSet := target.User.Password()
 		if passwordIsSet {
+			// Setting HTTP Basic Auth overwrites the current "Authorization" header(s)
 			req.SetBasicAuth(target.User.Username(), password)
 
 			if he != "" {
+				// Merge Authorization header(s)
 				req.Header.Set("Authorization", fmt.Sprintf("%s, %s", req.Header.Get("Authorization"), he))
 			}
 		}

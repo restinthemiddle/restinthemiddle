@@ -10,6 +10,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -19,10 +20,12 @@ type Config struct {
 	ListenAddress  string
 	Headers        map[string]string
 	LoggingEnabled bool
+	Exclude        string
 }
 
 var config Config
 var targetURL *url.URL
+var excludeRegexp *regexp.Regexp
 
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
@@ -42,6 +45,19 @@ func getTargetHostDsn() string {
 	return getEnv("TARGET_HOST_DSN", "http://127.0.0.1:8081")
 }
 
+func getExclude() string {
+	return getEnv("EXCLUDE", "")
+}
+
+func getExcludeRegexp(exclude string) *regexp.Regexp {
+	regex, err := regexp.Compile(exclude)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return regex
+}
+
 func getTargetURL(targetHostDsn string) *url.URL {
 	url, err := url.Parse(targetHostDsn)
 	if err != nil {
@@ -59,6 +75,7 @@ func getLoggingEnabled() bool {
 
 	return true
 }
+
 func readConfig() {
 	config.Headers = make(map[string]string)
 
@@ -74,14 +91,21 @@ func readConfig() {
 	config.TargetHostDsn = getTargetHostDsn()
 	config.ListenAddress = getListenAddress()
 	config.LoggingEnabled = getLoggingEnabled()
+	config.Exclude = getExclude()
 
 	targetURL = getTargetURL(config.TargetHostDsn)
+	excludeRegexp = getExcludeRegexp(config.Exclude)
 }
 
 // Log the env variables required for a reverse proxy
 func logSetup() {
 	log.Printf("Listening on: %s\n", config.ListenAddress)
 	log.Printf("Targeting server on: %s\n", config.TargetHostDsn)
+
+	if config.Exclude != "" {
+		log.Printf("Explude pattern: %s\n", config.Exclude)
+	}
+
 	log.Printf("Logging enabled: %s",
 		func() string {
 			if config.LoggingEnabled {
@@ -90,12 +114,14 @@ func logSetup() {
 
 			return "false"
 		}())
+
 	log.Println("Overwriting headers:")
 	for key, value := range config.Headers {
-		// Each value is an interface{} type, that is type asserted as a string
 		log.Printf("  %s: %s", key, value)
 	}
 
+	jsonString, _ := json.Marshal(config)
+	log.Printf("CONFIG=%s\n", string(jsonString))
 }
 
 func handleRequest(response http.ResponseWriter, request *http.Request) {
@@ -108,6 +134,12 @@ func handleRequest(response http.ResponseWriter, request *http.Request) {
 func logRequest(request *http.Request) (err error) {
 	if !config.LoggingEnabled {
 		return nil
+	}
+
+	if config.Exclude != "" {
+		if excludeRegexp.MatchString(request.URL.Path) {
+			return nil
+		}
 	}
 
 	query := ""
@@ -144,6 +176,12 @@ func logRequest(request *http.Request) (err error) {
 func logResponse(response *http.Response) (err error) {
 	if !config.LoggingEnabled {
 		return nil
+	}
+
+	if config.Exclude != "" {
+		if excludeRegexp.MatchString(response.Request.URL.Path) {
+			return nil
+		}
 	}
 
 	title := fmt.Sprintf("RESPONSE - Code: %d\n", response.StatusCode)

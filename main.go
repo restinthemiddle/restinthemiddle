@@ -224,7 +224,31 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-		req.Header.Set("X-Forwarded-Host", target.Host)
+
+		if req.Header.Get("X-Forwarded-Host") == "" {
+			req.Header.Set("X-Forwarded-Host", target.Host)
+		}
+
+		if req.Header.Get("X-Forwarded-Proto") == "" {
+			req.Header.Set("X-Forwarded-Proto", target.Scheme)
+		}
+
+		if req.Header.Get("X-Forwarded-Port") == "" {
+			if target.Port() != "" {
+				req.Header.Set("X-Forwarded-Port", target.Port())
+			} else {
+				if target.Scheme == "https" {
+					req.Header.Set("X-Forwarded-Port", "443")
+				} else {
+					req.Header.Set("X-Forwarded-Port", "80")
+				}
+			}
+		}
+
+		if req.Header.Get("X-Forwarded-For") == "" {
+			req.Header.Set("X-Forwarded-For", req.RemoteAddr)
+		}
+
 		req.Host = target.Host
 		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
 

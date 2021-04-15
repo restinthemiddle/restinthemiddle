@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -69,11 +67,7 @@ func getTargetURL(targetHostDsn string) *url.URL {
 
 func getLoggingEnabled() bool {
 	value := getEnv("LOGGING_ENABLED", "true")
-	if strings.ToLower(value) == "false" {
-		return false
-	}
-
-	return true
+	return strings.ToLower(value) != "false"
 }
 
 func readConfig() {
@@ -148,27 +142,7 @@ func logRequest(request *http.Request) (err error) {
 		query = fmt.Sprintf("?%s", rawQuery)
 	}
 
-	title := fmt.Sprintf("REQUEST - Method: %s; URL: %s://%s; Path: %s%s\n", request.Method, request.URL.Scheme, request.URL.Host, request.URL.Path, query)
-
-	headers := ""
-	for key, element := range request.Header {
-		headers += fmt.Sprintf("%s: %s\n", key, element)
-	}
-
-	bodyString := ""
-	if request.ContentLength > 0 {
-		bodyBytes, err := ioutil.ReadAll(request.Body)
-		if err != nil {
-			log.Fatal(err)
-			panic(err)
-		}
-
-		request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-		bodyString = fmt.Sprintf("Content: %s\n", string(bodyBytes))
-	}
-
-	log.Printf("%s%s%s", title, headers, bodyString)
+	log.Println(fmt.Sprintf("Request: %s %s://%s%s%s", request.Method, request.URL.Scheme, request.URL.Host, request.URL.Path, query))
 
 	return err
 }
@@ -184,29 +158,9 @@ func logResponse(response *http.Response) (err error) {
 		}
 	}
 
-	title := fmt.Sprintf("RESPONSE - Code: %d\n", response.StatusCode)
+	log.Println(fmt.Sprintf("Code: %d\n", response.StatusCode))
 
-	headers := ""
-	for key, element := range response.Header {
-		headers += fmt.Sprintf("%s: %s\n", key, element)
-	}
-
-	bodyString := ""
-	if response.ContentLength > 0 {
-		bodyBytes, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Fatal(err)
-			panic(err)
-		}
-
-		response.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-		bodyString = fmt.Sprintf("Content: %s\n", string(bodyBytes))
-	}
-
-	log.Printf("%s%s%s", title, headers, bodyString)
-
-	return err
+	return nil
 }
 
 func main() {

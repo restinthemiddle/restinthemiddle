@@ -1,7 +1,7 @@
 package core
 
 import (
-	"encoding/json"
+	"fmt"
 	"log"
 
 	yaml "gopkg.in/yaml.v3"
@@ -9,23 +9,24 @@ import (
 
 // Config holds the core configuration
 type Config struct {
-	TargetHostDsn  string            `json:"targetHostDsn"`
-	ListenAddress  string            `json:"listenAddress"`
-	Headers        map[string]string `json:"headers"`
-	LoggingEnabled bool              `json:"loggingEnabled"`
-	Exclude        string            `json:"exclude"`
+	TargetHostDsn  string
+	ListenAddress  string
+	Headers        map[string]string
+	LoggingEnabled bool
+	Exclude        string
 }
 
 // PrintConfig logs the env variables required for a reverse proxy
 func (c *Config) PrintConfig() {
-	log.Printf("Listening on: %s\n", c.ListenAddress)
-	log.Printf("Targeting server on: %s\n", c.TargetHostDsn)
+	log.Println("Restinthemiddle configuration")
+	fmt.Printf("Listening on: %s\n", c.ListenAddress)
+	fmt.Printf("Targeting server on: %s\n", c.TargetHostDsn)
 
 	if c.Exclude != "" {
-		log.Printf("Exclude pattern: %s\n", c.Exclude)
+		fmt.Printf("Exclude pattern: %s\n", c.Exclude)
 	}
 
-	log.Printf("Logging enabled: %s",
+	fmt.Printf("Logging enabled: %s",
 		func() string {
 			if c.LoggingEnabled {
 				return "true"
@@ -34,14 +35,11 @@ func (c *Config) PrintConfig() {
 			return "false"
 		}())
 
-	log.Println("Overwriting headers:")
+	fmt.Println("Overwriting headers:")
 	for key, value := range c.Headers {
-		log.Printf("  %s: %s", key, value)
+		fmt.Printf("  %s: %s", key, value)
 	}
 
-	jsonString, _ := json.Marshal(c)
-	log.Printf("JSON: %s\n", string(jsonString))
-
 	yamlString, _ := yaml.Marshal(c)
-	log.Printf("YAML: %s\n", string(yamlString))
+	fmt.Printf("YAML:\n%s\n", string(yamlString))
 }

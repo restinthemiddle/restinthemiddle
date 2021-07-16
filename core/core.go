@@ -75,8 +75,6 @@ func Run(c *Config, w Writer) {
 	targetURL = getTargetURL(cfg.TargetHostDsn)
 	excludeRegexp = getExcludeRegexp(cfg.Exclude)
 
-	cfg.PrintConfig()
-
 	http.HandleFunc("/", handleRequest)
 	if err := http.ListenAndServe(cfg.ListenAddress, nil); err != nil {
 		log.Panic(err)

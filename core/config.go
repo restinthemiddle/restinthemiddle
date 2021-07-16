@@ -18,28 +18,8 @@ type Config struct {
 
 // PrintConfig logs the env variables required for a reverse proxy
 func (c *Config) PrintConfig() {
-	log.Println("Restinthemiddle configuration")
-	fmt.Printf("Listening on: %s\n", c.ListenAddress)
-	fmt.Printf("Targeting server on: %s\n", c.TargetHostDsn)
-
-	if c.Exclude != "" {
-		fmt.Printf("Exclude pattern: %s\n", c.Exclude)
-	}
-
-	fmt.Printf("Logging enabled: %s",
-		func() string {
-			if c.LoggingEnabled {
-				return "true"
-			}
-
-			return "false"
-		}())
-
-	fmt.Println("Overwriting headers:")
-	for key, value := range c.Headers {
-		fmt.Printf("  %s: %s", key, value)
-	}
-
+	log.Println("starting restinthemiddle")
+	fmt.Println("YAML configuration:")
 	yamlString, _ := yaml.Marshal(c)
 	fmt.Printf("YAML:\n%s\n", string(yamlString))
 }

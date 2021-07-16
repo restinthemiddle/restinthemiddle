@@ -18,8 +18,8 @@ type Config struct {
 
 // PrintConfig logs the env variables required for a reverse proxy
 func (c *Config) PrintConfig() {
-	log.Println("starting restinthemiddle")
+	log.Println("restinthemiddle started")
 	fmt.Println("YAML configuration:")
 	yamlString, _ := yaml.Marshal(c)
-	fmt.Printf("YAML:\n%s\n", string(yamlString))
+	fmt.Printf("%s\n", string(yamlString))
 }

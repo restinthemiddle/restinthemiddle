@@ -43,11 +43,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(viper.ConfigFileUsed())
-
-	fmt.Println(viper.Get("headers"))
-	fmt.Printf("Type: %T\n", viper.Get("headers"))
-
 	config := core.Config{}
 
 	if err := viper.Unmarshal(&config); err != nil {
@@ -61,6 +56,11 @@ func main() {
 	config.Headers = headersProcessed
 
 	config.PrintConfig()
+
+	configFileUsed := viper.ConfigFileUsed()
+	if len(configFileUsed) > 0 {
+		fmt.Printf("Config File: %s\n", configFileUsed)
+	}
 
 	w := logwriter.Writer{}
 

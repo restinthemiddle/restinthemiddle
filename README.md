@@ -29,7 +29,7 @@ Clone this repository and run the `build_native` script.
 ```bash
 git clone https://github.com/jensschulze/restinthemiddle.git
 cd restinthemiddle
-./build_nat
+./build_native
 ```
 
 ## Usage

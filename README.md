@@ -24,17 +24,17 @@ cd restinthemiddle
 
 ### Build the binary yourself
 
-Clone this repository and run `go build`.
+Clone this repository and run the `build_native` script.
 
 ```bash
 git clone https://github.com/jensschulze/restinthemiddle.git
 cd restinthemiddle
-go build -o restinthemiddle
+./build_nat
 ```
 
 ## Usage
 
-Typically you place the logging proxy between an application and an API:
+Typically you place the logging proxy between an application and an API. This is the use case Restinthemiddle was developed for.
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -54,18 +54,36 @@ But there are cases where it makes sense to place it between your browser and th
 +-----------------+         +-----------------+         +-----------------+
 ```
 
+You may as well use Restinthemiddle as an alternative entrypoint for your Application.
+
 ### Configuration
 
-Restinthemiddle is intended for use in a dockerized environment. Therefore it is configurable entirely via environment variables.
+Configuration is handled by [spf13/viper](https://pkg.go.dev/github.com/spf13/viper).
+
+Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via environment variables.
 
 The ascending order of precedence (last wins) is:
 
-* Configuration via file (not implemented yet)
-* Configuration via `CONFIG` environment variable
-* Any other Environment variables
+* restinthemiddle default values
+* Configuration via YAML file
+* Configuration via Environment variables
+
+Of course you may provide an incomplete configuration. This is the default configuration:
+
+```yaml
+targethostdsn: http://host.docker.internal:8081
+listenaddress: 0.0.0.0:8000
+headers:
+    User-Agent: Rest in the middle logging proxy
+loggingenabled: true
+exclude: ""
+```
 
 #### Environment variables
 
+* `EXCLUDE` (optional): If the given URL path matches this Regular Expression the request/response will not be logged.
+* `LISTEN_ADDRESS` (optional): The (ip and) port on which Restinthemiddle will be listening to requests. Defaults to `0.0.0.0:8000`.
+* `LOGGING_ENABLED` (optional): Defaults to `true`.
 * `TARGET_HOST_DSN` (required): The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`.
   * `schema` (required) is `http` or `https`
   * `username:password@` is optional and will be evaluated only if both values are set.
@@ -73,19 +91,8 @@ The ascending order of precedence (last wins) is:
   * `port` is optional. Standard ports are 80 (http) and 443 (https).
   * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
   * `query` is optional. If set, `query` will precede the actual request’s query.
-* `PORT` (optional): The port on which Restinthemiddle will be listening to requests. Defaults to `8000`.
-* `LOGGING_ENABLED` (optional): Defaults to `true`.
-* `CONFIG` (optional): At the moment you can configure extra headers and logging as a JSON string in the form:
 
-```json
-{
-    "headers": {
-        "X-App-Version": "3.0.0",
-        "Another-Header": "Test"
-    },
-    "loggingEnabled": false
-}
-```
+**Note:** It is not possible to populate the `headers` dictionary via environment variable. You have to use a configuration file at least for `headers`.
 
 ## Examples
 
@@ -103,9 +110,9 @@ curl -i http://127.0.0.1:8000/api/visitors
 
 ### Advanced
 
-We want to log HTTP calls against `www.example.com:4430` over a TLS connection (`https://…`). The API is protected by HTTP basic auth (username: `user`; password: `pass`). The base path always contains `api/`.
+We want to log HTTP calls against `www.example.com:4430` over a TLS connection (`https://…`). The API is protected by HTTP basic auth (username: `user`; password: `pass`). The base path always starts with `api/`.
 
-Note that we define a base path in `TARGET_HOST_DSN` that prefixes any subsequent calls!
+Note that the base path defined in `TARGET_HOST_DSN` prefixes any subsequent calls!
 
 ```bash
 # Set up the proxy
@@ -119,9 +126,18 @@ curl -i http://127.0.0.1:8000/visitors
 
 We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a custom header `X-App-Version: 3.0.0`. No logging shall take place.
 
+#### config.yaml
+
+```yaml
+targetHostDsn: http://www.example.com
+headers:
+    X-App-Version: '3.0.0'
+loggingEnabled: false
+```
+
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -e CONFIG='{"headers":{"X-App-Version":"3.0.0"},"loggingEnabled":false}' -p 8000:8000 jdschulze/restinthemiddle:latest
+docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:latest
 
 # In another terminal window we make the API call against http://www.example.com/home
 curl -i http://127.0.0.1:8000/home

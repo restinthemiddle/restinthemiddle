@@ -83,8 +83,8 @@ exclude: ""
 #### Environment variables
 
 * `EXCLUDE` (optional): If the given URL path matches this Regular Expression the request/response will not be logged.
-* `LISTEN_IP` (optional): The ip port on which Restinthemiddle will be listening to requests. Defaults to `0.0.0.0`.
-* `LISTEN_PORT` (optional): The port on which Restinthemiddle will be listening to requests. Defaults to `8000`.
+* `LISTEN_IP` (optional): The ip on which Restinthemiddle listens for requests. Defaults to `0.0.0.0`.
+* `LISTEN_PORT` (optional): The port on which Restinthemiddle listens for to requests. Defaults to `8000`.
 * `LOGGING_ENABLED` (optional): Defaults to `true`.
 * `TARGET_HOST_DSN` (required): The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`.
   * `schema` (required) is `http` or `https`

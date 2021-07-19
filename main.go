@@ -21,8 +21,9 @@ func main() {
 	viper.RegisterAlias("listenAddress", "listen_address")
 	viper.RegisterAlias("loggingEnabled", "logging_enabled")
 
-	viper.SetDefault("targetHostDsn", "http://127.0.0.1:8081")
-	viper.SetDefault("listenAddress", "0.0.0.0:8000")
+	viper.SetDefault("targetHostDsn", "http://host.docker.internal:8081")
+	viper.SetDefault("listenIp", "0.0.0.0")
+	viper.SetDefault("listenPort", "8000")
 	viper.SetDefault("headers", map[string]string{"User-Agent": "Rest in the middle logging proxy"})
 	viper.SetDefault("loggingEnabled", true)
 	viper.SetDefault("exclude", "")

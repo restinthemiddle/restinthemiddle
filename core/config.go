@@ -10,7 +10,8 @@ import (
 // Config holds the core configuration
 type Config struct {
 	TargetHostDsn  string
-	ListenAddress  string
+	ListenIp       string
+	ListenPort     string
 	Headers        map[string]string
 	LoggingEnabled bool
 	Exclude        string

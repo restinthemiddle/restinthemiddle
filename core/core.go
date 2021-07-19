@@ -76,7 +76,7 @@ func Run(c *Config, w Writer) {
 	excludeRegexp = getExcludeRegexp(cfg.Exclude)
 
 	http.HandleFunc("/", handleRequest)
-	if err := http.ListenAndServe(cfg.ListenAddress, nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIp, cfg.ListenPort), nil); err != nil {
 		log.Panic(err)
 	}
 }

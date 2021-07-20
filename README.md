@@ -1,6 +1,9 @@
-# restinthemiddle
+# Restinthemiddle
 
-This Go program acts as a lightweight HTTP logging proxy for developing and staging environments. If you put it between an API client and the API you can easily monitor requests and responses.
+![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle?style=flat)
+![semver](https://img.shields.io/github/v/tag/jensschulze/restinthemiddle?style=flat&sort=semver)
+
+This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
 
 ## Installation
 
@@ -9,8 +12,10 @@ This Go program acts as a lightweight HTTP logging proxy for developing and stag
 Pull the [Docker image](https://hub.docker.com/repository/docker/jdschulze/restinthemiddle) from Docker Hub
 
 ```bash
-docker pull jdschulze/restinthemiddle
+docker pull jdschulze/restinthemiddle:1
 ```
+
+Pinning the version to the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch, regardless if the commit is tagged or not.
 
 ### Build the Docker image yourself
 

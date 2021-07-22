@@ -18,7 +18,8 @@ func main() {
 	}
 
 	viper.RegisterAlias("targetHostDsn", "target_host_dsn")
-	viper.RegisterAlias("listenAddress", "listen_address")
+	viper.RegisterAlias("listenIp", "listen_ip")
+	viper.RegisterAlias("listenPort", "listen_port")
 	viper.RegisterAlias("loggingEnabled", "logging_enabled")
 
 	viper.SetDefault("targetHostDsn", "http://host.docker.internal:8081")

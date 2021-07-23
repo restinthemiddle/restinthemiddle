@@ -26,7 +26,7 @@ func main() {
 
 	viper.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
 	viper.BindEnv("listenIp", "LISTEN_IP")
-	viper.BindEnv("listenPort", "LISTEN_PORT")
+	viper.BindEnv("listenPort", "LISTEN_PORT", "PORT")
 	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
 	viper.BindEnv("excluded", "EXCLUDED")
 

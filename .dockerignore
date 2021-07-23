@@ -1,4 +1,8 @@
 .git
+bin
 build
+build_native
+core
+logwriter
 restinthemiddle
 README.md

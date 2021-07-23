@@ -44,10 +44,6 @@ func main() {
 		}
 	}
 
-	wip := viper.Get("targetHostDsn")
-	fmt.Printf("\n\n\nTarget Host Dsn: %s\n\n\n", wip)
-	viper.Debug()
-
 	config := core.Config{}
 
 	if err := viper.Unmarshal(&config); err != nil {

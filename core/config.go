@@ -9,12 +9,12 @@ import (
 
 // Config holds the core configuration
 type Config struct {
-	TargetHostDsn  string
-	ListenIp       string
-	ListenPort     string
-	Headers        map[string]string
-	LoggingEnabled bool
-	Exclude        string
+	TargetHostDsn  string            `yaml:"targetHostDsn"`
+	ListenIp       string            `yaml:"listenIp"`
+	ListenPort     string            `yaml:"listenPort"`
+	Headers        map[string]string `yaml:"headers,omitempty"`
+	LoggingEnabled bool              `yaml:"loggingEnabled"`
+	Exclude        string            `yaml:"exclude"`
 }
 
 // PrintConfig logs the env variables required for a reverse proxy

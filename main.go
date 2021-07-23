@@ -17,11 +17,6 @@ func main() {
 		panic(err)
 	}
 
-	viper.RegisterAlias("targetHostDsn", "target_host_dsn")
-	viper.RegisterAlias("listenIp", "listen_ip")
-	viper.RegisterAlias("listenPort", "listen_port")
-	viper.RegisterAlias("loggingEnabled", "logging_enabled")
-
 	viper.SetDefault("targetHostDsn", "http://host.docker.internal:8081")
 	viper.SetDefault("listenIp", "0.0.0.0")
 	viper.SetDefault("listenPort", "8000")
@@ -29,7 +24,11 @@ func main() {
 	viper.SetDefault("loggingEnabled", true)
 	viper.SetDefault("exclude", "")
 
-	viper.AutomaticEnv()
+	viper.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
+	viper.BindEnv("listenIp", "LISTEN_IP")
+	viper.BindEnv("listenPort", "LISTEN_PORT")
+	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
+	viper.BindEnv("excluded", "EXCLUDED")
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")

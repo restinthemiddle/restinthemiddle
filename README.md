@@ -73,15 +73,17 @@ The ascending order of precedence (last wins) is:
 * Configuration via YAML file
 * Configuration via Environment variables
 
-Of course you may provide an incomplete configuration. This is the default configuration:
+Of course you may provide an incomplete configuration.
+
+The default configuration looks like this:
 
 ```yaml
-targethostdsn: http://host.docker.internal:8081
-listenip: 0.0.0.0
-listenport: "8000"
+targetHostDsn: http://host.docker.internal:8081
+listenIp: 0.0.0.0
+listenPort: "8000"
 headers:
     User-Agent: Rest in the middle logging proxy
-loggingenabled: true
+loggingEnabled: true
 exclude: ""
 ```
 
@@ -89,7 +91,7 @@ exclude: ""
 
 * `EXCLUDE` (optional): If the given URL path matches this Regular Expression the request/response will not be logged.
 * `LISTEN_IP` (optional): The ip on which Restinthemiddle listens for requests. Defaults to `0.0.0.0`.
-* `LISTEN_PORT` (optional): The port on which Restinthemiddle listens for to requests. Defaults to `8000`.
+* `LISTEN_PORT` (optional): The port on which Restinthemiddle listens for to requests. Defaults to `8000`. In order to ensure backwards compatibility to 0.x you can still use `PORT` instead.
 * `LOGGING_ENABLED` (optional): Defaults to `true`.
 * `TARGET_HOST_DSN` (required): The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`.
   * `schema` (required) is `http` or `https`
@@ -99,7 +101,7 @@ exclude: ""
   * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
   * `query` is optional. If set, `query` will precede the actual request’s query.
 
-**Note:** It is not possible to populate the `headers` dictionary via environment variable. You have to use a configuration file at least for `headers`.
+**Note:** It is not possible to populate the `headers` dictionary via an environment variable. If you want to change the `headers` you have to use a configuration file.
 
 ## Examples
 

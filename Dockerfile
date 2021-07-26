@@ -1,5 +1,5 @@
-ARG BASE_IMAGE_BUILD=golang:alpine
-ARG BASE_IMAGE_RELEASE=alpine:latest
+ARG BASE_IMAGE_BUILD=golang:1.16-alpine
+ARG BASE_IMAGE_RELEASE=alpine:3.14
 
 FROM ${BASE_IMAGE_BUILD} AS build-env
 
@@ -10,9 +10,12 @@ COPY go.* .
 RUN go mod download
 
 COPY . .
-RUN cd /src && go build -o restinthemiddle
+WORKDIR /src
+RUN go build -o restinthemiddle
 
 FROM ${BASE_IMAGE_RELEASE}
+
+LABEL org.opencontainers.image.authors="Jens Schulze"
 
 COPY --from=build-env /src/restinthemiddle /usr/local/bin/
 

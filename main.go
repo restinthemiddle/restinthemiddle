@@ -22,12 +22,14 @@ func main() {
 	viper.SetDefault("listenPort", "8000")
 	viper.SetDefault("headers", map[string]string{"User-Agent": "Rest in the middle logging proxy"})
 	viper.SetDefault("loggingEnabled", true)
+	viper.SetDefault("setRequestId", false)
 	viper.SetDefault("exclude", "")
 
 	viper.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
 	viper.BindEnv("listenIp", "LISTEN_IP")
 	viper.BindEnv("listenPort", "LISTEN_PORT", "PORT")
 	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
+	viper.BindEnv("setRequestId", "SET_REQUEST_ID")
 	viper.BindEnv("excluded", "EXCLUDED")
 
 	viper.SetConfigName("config")

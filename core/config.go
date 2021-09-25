@@ -14,6 +14,7 @@ type Config struct {
 	ListenPort     string            `yaml:"listenPort"`
 	Headers        map[string]string `yaml:"headers,omitempty"`
 	LoggingEnabled bool              `yaml:"loggingEnabled"`
+	SetRequestId   bool              `yaml:"setRequestId"`
 	Exclude        string            `yaml:"exclude"`
 }
 

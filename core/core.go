@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 var cfg Config
@@ -86,6 +88,12 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
+
+		if cfg.SetRequestId && req.Header.Get("X-Request-Id") == "" {
+			requestId := uuid.Must(uuid.NewRandom())
+
+			req.Header.Set("X-Request-Id", requestId.String())
+		}
 
 		if req.Header.Get("X-Forwarded-Host") == "" {
 			req.Header.Set("X-Forwarded-Host", target.Host)

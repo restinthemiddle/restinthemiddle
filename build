@@ -1,5 +1,6 @@
 #!/bin/sh
-BASE_IMAGE_BUILD=golang:1.16-alpine
+
+BASE_IMAGE_BUILD=golang:1.17-alpine
 BASE_IMAGE_RELEASE=alpine:3.14
 
 docker pull ${BASE_IMAGE_BUILD} ${BASE_IMAGE_RELEASE}

@@ -1,4 +1,4 @@
-ARG BASE_IMAGE_BUILD=golang:1.16-alpine
+ARG BASE_IMAGE_BUILD=golang:1.17-alpine
 ARG BASE_IMAGE_RELEASE=alpine:3.14
 
 FROM ${BASE_IMAGE_BUILD} AS build-env

@@ -161,3 +161,7 @@ docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 j
 # In another terminal window we make the API call against http://www.example.com/home
 curl -i http://127.0.0.1:8000/home
 ```
+
+### Helm Chart for Kubernetes
+
+There is a Helm Chart for Restinthemiddle at [https://github.com/jensschulze/restinthemiddle-helm](https://github.com/jensschulze/restinthemiddle-helm). In most cases you will use Restinthemiddle as a [conditional dependency](https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags) in your charts.

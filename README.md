@@ -88,17 +88,19 @@ setRequestId: false
 exclude: ""
 ```
 
-| configuration key | environment variable  | description | default | example |
-|---|---|---|---|---|
+#### Keys
+
+| configuration key | environment variable  | description | default |
+|---|---|---|---|
 | `targetHostDsn` (required) | `TARGET_HOST_DSN` | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | - |
 | `listenIp` (optional) | `LISTEN_IP` | The IP on which Restinthemiddle listens for requests. | `0.0.0.0` |
 | `listenPort` (optional) | `LISTEN_PORT` or `PORT` | The port on which Restinthemiddle listens for to requests. In order to ensure backwards compatibility to 0.x you can still use `PORT` instead. | `8000` |
-| `headers` (optional) | - | | `User-Agent: Rest in the middle logging proxy` |
+| `headers` (optional) | - | A dictionary of HTTP headers. **Important:** It is not possible to populate this via environment variables. If you want to change the `headers` you have to use a configuration file. | `User-Agent: Rest in the middle logging proxy` |
 | `loggingEnabled` (optional) | `LOGGING_ENABLED` | | `true` |
 | `setRequestId` (optional) | `SET_REQUEST_ID` | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID. | `false` |
 | `exclude` (optional) | `EXCLUDE` | If the given URL path matches this Regular Expression the request/response will not be logged. | "" |
 
-#### The target host DSN
+##### The target host DSN
 
 `schema://username:password@hostname:port/basepath?query`
 
@@ -108,10 +110,6 @@ exclude: ""
 * `port` is optional. Standard ports are `80` (http) and `443` (https).
 * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
 * `query` is optional. If set, `query` will precede the actual request’s query.
-
-#### Environment variables
-
-**Note:** It is not possible to populate the `headers` dictionary via an environment variable. If you want to change the `headers` you have to use a configuration file.
 
 ## Examples
 

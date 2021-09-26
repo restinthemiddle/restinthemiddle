@@ -59,7 +59,7 @@ But there are cases where it makes sense to place it between your browser and th
 +-----------------+         +-----------------+         +-----------------+
 ```
 
-You may as well use Restinthemiddle as an alternative entrypoint for your Application.
+You may as well use Restinthemiddle as an alternative entrypoint for your application.
 
 ### Configuration
 
@@ -90,15 +90,15 @@ exclude: ""
 
 #### Keys
 
-| configuration key | environment variable  | description | default |
+| Configuration key | Environment variable  | Description | Default value |
 |---|---|---|---|
 | `targetHostDsn` (required) | `TARGET_HOST_DSN` | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | - |
 | `listenIp` (optional) | `LISTEN_IP` | The IP on which Restinthemiddle listens for requests. | `0.0.0.0` |
-| `listenPort` (optional) | `LISTEN_PORT` or `PORT` | The port on which Restinthemiddle listens for to requests. In order to ensure backwards compatibility to 0.x you can still use `PORT` instead. | `8000` |
+| `listenPort` (optional) | `LISTEN_PORT` (recommended) or `PORT` (deprecated) | The port on which Restinthemiddle listens for to requests. In order to ensure backwards compatibility to 0.x you can still use the deprecated `PORT` instead. | `8000` |
 | `headers` (optional) | - | A dictionary of HTTP headers. **Important:** It is not possible to populate this via environment variables. If you want to change the `headers` you have to use a configuration file. | `User-Agent: Rest in the middle logging proxy` |
 | `loggingEnabled` (optional) | `LOGGING_ENABLED` | | `true` |
 | `setRequestId` (optional) | `SET_REQUEST_ID` | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID. | `false` |
-| `exclude` (optional) | `EXCLUDE` | If the given URL path matches this Regular Expression the request/response will not be logged. | "" |
+| `exclude` (optional) | `EXCLUDE` | If the given URL path matches this Regular Expression the request/response will not be logged. | `""` |
 
 ##### The target host DSN
 

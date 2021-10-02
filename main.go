@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jensschulze/restinthemiddle/core"
-	"github.com/jensschulze/restinthemiddle/logwriter"
+	"github.com/restinthemiddle/core"
+	"github.com/restinthemiddle/logwriter"
 	"github.com/spf13/viper"
 )
 

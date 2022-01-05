@@ -6,9 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/restinthemiddle/core"
-	"github.com/restinthemiddle/logwriter"
+	"github.com/restinthemiddle/core/v2"
+	"github.com/restinthemiddle/zapwriter"
 	"github.com/spf13/viper"
+
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -65,7 +67,14 @@ func main() {
 		fmt.Printf("Config File: %s\n", configFileUsed)
 	}
 
-	w := logwriter.Writer{}
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Panicf("unable to initialize Zap logger")
+	}
+
+	defer logger.Sync()
+
+	w := zapwriter.Writer{Logger: logger}
 
 	core.Run(&config, &w)
 }

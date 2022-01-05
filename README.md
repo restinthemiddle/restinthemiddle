@@ -1,7 +1,8 @@
 # Restinthemiddle
 
-![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle?style=flat)
-![semver](https://img.shields.io/github/v/tag/jensschulze/restinthemiddle?style=flat&sort=semver)
+![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle)
+[![codecov](https://codecov.io/gh/restinthemiddle/restinthemiddle/branch/main/graph/badge.svg)](https://codecov.io/gh/restinthemiddle/restinthemiddle)
+![v2](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle?filter=2.*)
 
 This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
 
@@ -9,37 +10,39 @@ This lightweight application acts as a HTTP logging proxy for developing and sta
 
 ### Docker (recommended)
 
-Pull the [Docker image](https://hub.docker.com/repository/docker/jdschulze/restinthemiddle) from Docker Hub
+Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags) from Docker Hub
 
 ```bash
-docker pull jdschulze/restinthemiddle:1
+docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch, regardless if the commit is tagged or not.
+Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the `latest` tag is always the `HEAD` of the `main` branch but this can change without notice anytime.
 
 ### Build the Docker image yourself
 
-Clone this repository and run the `build` script.
+Clone this repository and run `make docker`.
 
 ```bash
-git clone https://github.com/jensschulze/restinthemiddle.git
+git clone https://github.com/restinthemiddle/restinthemiddle.git
 cd restinthemiddle
-./build
+git checkout main
+make docker
 ```
 
 ### Build the binary yourself
 
-Clone this repository and run the `build_native` script.
+Clone this repository and run `make build`.
 
 ```bash
-git clone https://github.com/jensschulze/restinthemiddle.git
+git clone https://github.com/restinthemiddle/restinthemiddle.git
 cd restinthemiddle
-./build_native
+git checkout main
+make build
 ```
 
 ## Usage
 
-Typically you place the logging proxy between an application and an API. This is the use case Restinthemiddle was developed for.
+Typically, you place the logging proxy between an application and an API. This is the use case Restinthemiddle was developed for.
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -49,7 +52,7 @@ Typically you place the logging proxy between an application and an API. This is
 +-----------------+         +-----------------+         +-----------------+
 ```
 
-But there are cases where it makes sense to place it between your browser and the application. For example you could want to add custom headers to every request (kind of an off-label use, because no logging is needed):
+But there are cases where it makes sense to place it between your browser and the application. For example, you could want to add custom headers to every request (kind of off-label use, because no logging is needed):
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -65,40 +68,60 @@ You may as well use Restinthemiddle as an alternative entrypoint for your applic
 
 Configuration is handled by [spf13/viper](https://pkg.go.dev/github.com/spf13/viper).
 
-Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via environment variables.
+Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via environment variables - almost!
+Headers have to be set via command line arguments or the configuration file.
 
 The ascending order of precedence (last wins) is:
 
-* restinthemiddle default values
+* Restinthemiddle default values
 * Configuration via YAML file
 * Configuration via Environment variables
+* Command line arguments
 
-Of course you may provide an incomplete configuration.
-
-The default configuration looks like this:
+Example configuration file:
 
 ```yaml
-targetHostDsn: http://host.docker.internal:8081
+targetHostDsn: www.example.com
 listenIp: 0.0.0.0
 listenPort: "8000"
 headers:
-    User-Agent: Rest in the middle logging proxy
+    X-My-Header: myexamplevalue
 loggingEnabled: true
 setRequestId: false
 exclude: ""
+logPostBody: true
+logResponseBody: true
+excludePostBody: ""
+excludeResponseBody: ""
+readTimeout: 5
+writeTimeout: 10
+idleTimeout: 120
 ```
+
+There are several file locations where configuration is being searched for. The ascending order of precedence (last wins) is:
+
+* `/etc/restinthemiddle/config.yaml`
+* `$HOME/.restinthemiddle/config.yaml`
+* `./config.yaml`
 
 #### Keys
 
-| Configuration key | Environment variable  | Description | Default value |
-|---|---|---|---|
-| `targetHostDsn` (required) | `TARGET_HOST_DSN` | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | - |
-| `listenIp` (optional) | `LISTEN_IP` | The IP on which Restinthemiddle listens for requests. | `0.0.0.0` |
-| `listenPort` (optional) | `LISTEN_PORT` (recommended) or `PORT` (deprecated) | The port on which Restinthemiddle listens for to requests. In order to ensure backwards compatibility to 0.x you can still use the deprecated `PORT` instead. | `8000` |
-| `headers` (optional) | - | A dictionary of HTTP headers. **Important:** It is not possible to populate this via environment variables. If you want to change the `headers` you have to use a configuration file. | `User-Agent: Rest in the middle logging proxy` |
-| `loggingEnabled` (optional) | `LOGGING_ENABLED` | | `true` |
-| `setRequestId` (optional) | `SET_REQUEST_ID` | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID. | `false` |
-| `exclude` (optional) | `EXCLUDE` | If the given URL path matches this Regular Expression the request/response will not be logged. | `""` |
+| Configuration key                | Environment variable    | Command line flag       | Description                                                                                                                                                  | Default value                                  |
+|----------------------------------|-------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `targetHostDsn` (required)       | `TARGET_HOST_DSN`       | --target-host-dsn       | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
+| `listenIp` (optional)            | `LISTEN_IP`             | --listen-ip             | The IP on which Restinthemiddle listens for requests.                                                                                                        | `0.0.0.0`                                      |
+| `listenPort` (optional)          | `LISTEN_PORT`           | --listen-port           | The port on which Restinthemiddle listens for to requests.                                                                                                   | `8000`                                         |
+| `headers` (optional)             | -                       | --header                | A dictionary of HTTP headers.                                                                                                                                | `User-Agent: Rest in the middle logging proxy` |
+| `loggingEnabled` (optional)      | `LOGGING_ENABLED`       | --logging-enabled       | Enable logging.                                                                                                                                              | `true`                                         |
+| `setRequestId` (optional)        | `SET_REQUEST_ID`        | --set-request-id        | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID.                                                                   | `false`                                        |
+| `exclude` (optional)             | `EXCLUDE`               | --exclude               | If the given URL path matches this Regular Expression this request+response will not be logged.                                                              | `""`                                           |
+| `logPostBody` (optional)         | `LOG_POST_BODY`         | --log-post-body         | Log the request's body.                                                                                                                                      | `true`                                         |
+| `logResponseBody` (optional)     | `LOG_RESPONSE_BODY`     | --log-response-body     | Log the response's body.                                                                                                                                     | `true`                                         |
+| `excludePostBody` (optional)     | `EXCLUDE_POST_BODY`     | --exclude-post-body     | If the given URL path matches this Regular Expression the request body (post) is set empty.                                                                  | `""`                                           |
+| `excludeResponseBody` (optional) | `EXCLUDE_RESPONSE_BODY` | --exclude-response-body | If the given URL path matches this Regular Expression the response body is set emtpy.                                                                        | `""`                                           |
+| `readTimeout` (optional)         | `READ_TIMEOUT`          | --read-timeout          | Read timeout in seconds.                                                                                                                                     | `5`                                            |
+| `writeTimeout` (optional)        | `WRITE_TIMEOUT`         | --write-timeout         | Write timeout in seconds.                                                                                                                                    | `10`                                           |
+| `idleTimeout` (optional)         | `IDLE_TIMEOUT`          | --idle-timeout          | Idle timeout in seconds.                                                                                                                                     | `120`                                          |
 
 ##### The target host DSN
 
@@ -109,7 +132,17 @@ exclude: ""
 * `hostname` (required)
 * `port` is optional. Standard ports are `80` (http) and `443` (https).
 * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
-* `query` is optional. If set, `query` will precede the actual request’s query.
+* `query` is optional. If set, `query` will precede the actual request's query.
+
+##### Headers
+
+If a header is defined multiple times, the last assignment wins.
+
+If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g. a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the _target host DSN_ string:
+
+```bash
+docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8000:8000 jdschulze/restinthemiddle:2 --header="Authorization:Bearer ABCD1234"
+```
 
 ## Examples
 
@@ -119,7 +152,7 @@ We want to log HTTP calls against `www.example.com` over an insecure connection.
 
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -p 8000:8000 jdschulze/restinthemiddle
+docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against http://www.example.com/api/visitors
 curl -i http://127.0.0.1:8000/api/visitors
@@ -133,17 +166,19 @@ Note that the base path defined in `TARGET_HOST_DSN` prefixes any subsequent cal
 
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle
+docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against https://user:pass@www.example.com:4430/api/visitors?start=1577833200
 curl -i http://127.0.0.1:8000/visitors
 ```
 
-### With configuration
+### Setting/changing headers
 
 We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a custom header `X-App-Version: 3.0.0`. No logging shall take place.
 
-#### config.yaml
+#### With configuration file
+
+##### config.yaml
 
 ```yaml
 targetHostDsn: http://www.example.com
@@ -154,12 +189,25 @@ loggingEnabled: false
 
 ```bash
 # Set up the proxy
-docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:latest
+docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against http://www.example.com/home
 curl -i http://127.0.0.1:8000/home
 ```
 
+#### With command line arguments
+
+```bash
+# Set up the proxy
+docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 restinthemiddle --target-host-dsn=http://www.example.com --header=x-app-version:3.0.0
+```
+
 ### Helm Chart for Kubernetes
 
-There is a Helm Chart for Restinthemiddle at [https://github.com/jensschulze/restinthemiddle-helm](https://github.com/jensschulze/restinthemiddle-helm). In most cases you will use Restinthemiddle as a [conditional dependency](https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags) in your charts.
+There is a Helm Chart for Restinthemiddle at [https://github.com/restinthemiddle/helm](https://github.com/restinthemiddle/helm).
+You may want to add the Restinthemiddle Helm repository:
+
+```shell
+helm repo add restinthemiddle https://restinthemiddle.github.io/helm
+helm repo update
+```

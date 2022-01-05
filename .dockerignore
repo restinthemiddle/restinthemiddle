@@ -1,8 +1,9 @@
 .git
+.github
+.gitignore
 bin
-build
-build_native
-core
-logwriter
-restinthemiddle
+tests/integration/config.yaml
+Dockerfile
+License
+Makefile
 README.md

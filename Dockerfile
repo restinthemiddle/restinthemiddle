@@ -1,22 +1,30 @@
-ARG BASE_IMAGE_BUILD=golang:1.17-alpine
-ARG BASE_IMAGE_RELEASE=alpine:3.14
+FROM golang:1.24.4-alpine AS build-env
 
-FROM ${BASE_IMAGE_BUILD} AS build-env
-
-RUN mkdir -p /src
 WORKDIR /src
+
+RUN apk -U upgrade \
+    && apk add --no-cache dumb-init
 
 COPY go.* .
 RUN go mod download
 
 COPY . .
-WORKDIR /src
-RUN go build -o restinthemiddle
 
-FROM ${BASE_IMAGE_RELEASE}
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle ./cmd/restinthemiddle/main.go
+
+FROM alpine:3.22.0 AS artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
-COPY --from=build-env /src/restinthemiddle /usr/local/bin/
+ENV TZ=UTC
 
-CMD ["/usr/local/bin/restinthemiddle"]
+RUN apk -U upgrade \
+    && apk add --no-cache ca-certificates tzdata \
+    && rm -rf /var/cache/apk/*
+
+COPY --from=build-env /src/restinthemiddle /usr/bin/restinthemiddle
+
+COPY --from=build-env /usr/bin/dumb-init /usr/bin/dumb-init
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["restinthemiddle"]

@@ -1,0 +1,14 @@
+{
+    "go.buildTags": "integration",
+    "go.testTags": "integration",
+    "go.toolsEnvVars": {
+        "GOFLAGS": "-tags=integration"
+    },
+    "go.testFlags": [
+        "-tags=integration"
+    ],
+    "go.coverOnTestPackage": false,
+    "files.associations": {
+        "**/tests/integration/**/*.go": "go"
+    }
+}

@@ -1,17 +1,16 @@
-ARG BASE_IMAGE_BUILD=golang:1.17-alpine
-ARG BASE_IMAGE_RELEASE=alpine:3.14
+ARG BASE_IMAGE_BUILD=golang:1.18-alpine
+ARG BASE_IMAGE_RELEASE=alpine:3.15
 
 FROM ${BASE_IMAGE_BUILD} AS build-env
 
-RUN mkdir -p /src
 WORKDIR /src
 
 COPY go.* .
 RUN go mod download
 
 COPY . .
-WORKDIR /src
-RUN go build -o restinthemiddle
+
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o restinthemiddle
 
 FROM ${BASE_IMAGE_RELEASE}
 

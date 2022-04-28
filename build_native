@@ -1,4 +1,4 @@
 #!/bin/sh
 
 go mod download
-go build -o bin/restinthemiddle
+CGO_ENABLED=0 go build -ldflags '-s -w' -o bin/restinthemiddle

@@ -3,15 +3,14 @@ module github.com/restinthemiddle/restinthemiddle
 go 1.18
 
 require (
-	github.com/restinthemiddle/core/v2 v2.0.0
-	github.com/restinthemiddle/zapwriter v0.0.0-20220105014043-856d6e984a67
+	github.com/google/uuid v1.3.0
 	github.com/spf13/viper v1.12.0
 	go.uber.org/zap v1.21.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -28,5 +27,4 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

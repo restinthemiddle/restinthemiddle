@@ -30,7 +30,7 @@ func main() {
 	viper.BindEnv("listenPort", "LISTEN_PORT", "PORT")
 	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
 	viper.BindEnv("setRequestId", "SET_REQUEST_ID")
-	viper.BindEnv("excluded", "EXCLUDED")
+	viper.BindEnv("exclude", "EXCLUDE")
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")

@@ -133,6 +133,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		zap.String("args", query),
 		zap.Strings("request_headers", requestHeaders),
 		zap.String("post_body", requestBodyString),
+		zap.String("status", response.Status),
 		zap.Time("connection_start", connectionStart),
 		zap.Time("connection_end", connectionEnd),
 		zap.Duration("connection_duration", connectionDuration),

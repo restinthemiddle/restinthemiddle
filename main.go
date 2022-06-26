@@ -8,12 +8,33 @@ import (
 
 	"github.com/restinthemiddle/restinthemiddle/pkg/core"
 	"github.com/restinthemiddle/restinthemiddle/pkg/zapwriter"
+	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
 	"go.uber.org/zap"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func main() {
+	var targetHostDsn string
+	var listenIp string
+	var listenPort string
+	var headers []string
+	var loggingEnabled bool
+	var setRequestId bool
+	var exclude string
+
+	flag.StringVar(&targetHostDsn, "target-host-dsn", "", "The DSN of the target host in the form schema://username:password@hostname:port/basepath?query")
+	flag.StringVar(&listenIp, "listen-ip", "0.0.0.0", "The IP on which Restinthemiddle listens for requests.")
+	flag.StringVar(&listenPort, "listen-port", "8000", "The port on which Restinthemiddle listens for to requests.")
+	flag.StringArrayVar(&headers, "header", make([]string, 0), "HTTP header to set. You may use this flag multiple times.")
+	flag.BoolVar(&loggingEnabled, "logging-enabled", true, "")
+	flag.BoolVar(&setRequestId, "set-request-id", false, "If not already present in the request, add an X-Request-Id header with a version 4 UUID.")
+	flag.StringVar(&exclude, "exclude", "", "If the given URL path matches this Regular Expression the request/response will not be logged.")
+
+	flag.Parse()
+	// fmt.Printf("%+v\n", len(headers))
+	// os.Exit(0)
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -22,7 +43,7 @@ func main() {
 	viper.SetDefault("targetHostDsn", "http://host.docker.internal:8081")
 	viper.SetDefault("listenIp", "0.0.0.0")
 	viper.SetDefault("listenPort", "8000")
-	viper.SetDefault("headers", map[string]string{"User-Agent": "Rest in the middle logging proxy"})
+	viper.SetDefault("headers", make(map[string]string, 0))
 	viper.SetDefault("loggingEnabled", true)
 	viper.SetDefault("setRequestId", false)
 	viper.SetDefault("exclude", "")
@@ -32,7 +53,14 @@ func main() {
 	viper.BindEnv("listenPort", "LISTEN_PORT", "PORT")
 	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
 	viper.BindEnv("setRequestId", "SET_REQUEST_ID")
-	viper.BindEnv("excluded", "EXCLUDED")
+	viper.BindEnv("exclude", "EXCLUDE")
+
+	viper.BindPFlag("targetHostDsn", flag.Lookup("target-host-dsn"))
+	viper.BindPFlag("listenIp", flag.Lookup("listen-ip"))
+	viper.BindPFlag("listenPort", flag.Lookup("listen-port"))
+	viper.BindPFlag("loggingEnabled", flag.Lookup("logging-enabled"))
+	viper.BindPFlag("setRequestId", flag.Lookup("set-request-id"))
+	viper.BindPFlag("exclude", flag.Lookup("exclude"))
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -54,9 +82,17 @@ func main() {
 		log.Panicf("unable to decode into struct, %v", err)
 	}
 
-	headersProcessed := map[string]string{"User-Agent": "Rest in the middle logging proxy"}
+	for _, item := range headers {
+		k, v, found := strings.Cut(item, ":")
+		if found {
+			config.Headers[k] = v
+		}
+	}
+
+	titleCaser := cases.Title(language.AmericanEnglish)
+	headersProcessed := make(map[string]string, 0)
 	for k, v := range config.Headers {
-		headersProcessed[strings.Title(strings.ToLower(k))] = v
+		headersProcessed[titleCaser.String(strings.ToLower(k))] = v
 	}
 	config.Headers = headersProcessed
 

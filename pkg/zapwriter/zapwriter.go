@@ -43,7 +43,7 @@ func (w Writer) LogRequest(request *http.Request) (err error) {
 		bodyString = string(bodyBytes)
 	}
 
-	w.Logger.Info("failed to fetch URL",
+	w.Logger.Info("",
 		zap.String("request_method", request.Method),
 		zap.String("scheme", request.URL.Scheme),
 		zap.String("http_host", request.URL.Host),
@@ -69,6 +69,9 @@ func (w Writer) LogRequest(request *http.Request) (err error) {
 }
 
 func (w Writer) LogResponse(response *http.Response) (err error) {
+	// request := response.Request
+	// w.LogRequest(request)
+
 	query := ""
 	rawQuery := response.Request.URL.RawQuery
 	if len(rawQuery) > 0 {
@@ -119,10 +122,10 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		}
 		response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBodyBytes))
 
-		responseBodyString = fmt.Sprintf("Content: %s\n", string(responseBodyBytes))
+		responseBodyString = string(responseBodyBytes)
 	}
 
-	w.Logger.Info("failed to fetch URL",
+	w.Logger.Info("",
 		zap.String("request_method", response.Request.Method),
 		zap.String("scheme", response.Request.URL.Scheme),
 		zap.String("http_host", response.Request.URL.Host),

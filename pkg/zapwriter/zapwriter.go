@@ -14,6 +14,7 @@ import (
 
 type Writer struct {
 	Logger *zap.Logger
+	Config *core.Config
 }
 
 func (w Writer) LogResponse(response *http.Response) (err error) {
@@ -31,7 +32,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	}
 
 	requestBodyString := ""
-	if response.Request.ContentLength > 0 {
+	if w.Config.LogPostBody && response.Request.ContentLength > 0 {
 		requestBodyBytes, err := ioutil.ReadAll(response.Request.Body)
 		if err != nil {
 			log.Fatal(err)
@@ -59,7 +60,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	}
 
 	responseBodyString := ""
-	if response.ContentLength > 0 {
+	if w.Config.LogResponseBody && response.ContentLength > 0 {
 		responseBodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			log.Fatal(err)

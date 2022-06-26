@@ -23,6 +23,8 @@ func main() {
 	var loggingEnabled bool
 	var setRequestId bool
 	var exclude string
+	var logPostBody bool
+	var logResponseBody bool
 
 	flag.StringVar(&targetHostDsn, "target-host-dsn", "", "The DSN of the target host in the form schema://username:password@hostname:port/basepath?query")
 	flag.StringVar(&listenIp, "listen-ip", "0.0.0.0", "The IP on which Restinthemiddle listens for requests.")
@@ -31,10 +33,11 @@ func main() {
 	flag.BoolVar(&loggingEnabled, "logging-enabled", true, "")
 	flag.BoolVar(&setRequestId, "set-request-id", false, "If not already present in the request, add an X-Request-Id header with a version 4 UUID.")
 	flag.StringVar(&exclude, "exclude", "", "If the given URL path matches this Regular Expression the request/response will not be logged.")
+	flag.BoolVar(&logPostBody, "log-post-body", true, "If the given URL path matches this Regular Expression the request/response will not be logged.")
+	flag.BoolVar(&logResponseBody, "log-response-body", true, "If the given URL path matches this Regular Expression the request/response will not be logged.")
 
 	flag.Parse()
-	// fmt.Printf("%+v\n", len(headers))
-	// os.Exit(0)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -47,6 +50,8 @@ func main() {
 	viper.SetDefault("loggingEnabled", true)
 	viper.SetDefault("setRequestId", false)
 	viper.SetDefault("exclude", "")
+	viper.SetDefault("logPostBody", true)
+	viper.SetDefault("logResponseBody", true)
 
 	viper.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
 	viper.BindEnv("listenIp", "LISTEN_IP")
@@ -54,6 +59,8 @@ func main() {
 	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
 	viper.BindEnv("setRequestId", "SET_REQUEST_ID")
 	viper.BindEnv("exclude", "EXCLUDE")
+	viper.BindEnv("logPostBody", "LOG_POST_BODY")
+	viper.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")
 
 	viper.BindPFlag("targetHostDsn", flag.Lookup("target-host-dsn"))
 	viper.BindPFlag("listenIp", flag.Lookup("listen-ip"))
@@ -61,6 +68,8 @@ func main() {
 	viper.BindPFlag("loggingEnabled", flag.Lookup("logging-enabled"))
 	viper.BindPFlag("setRequestId", flag.Lookup("set-request-id"))
 	viper.BindPFlag("exclude", flag.Lookup("exclude"))
+	viper.BindPFlag("logPostBody", flag.Lookup("log-post-body"))
+	viper.BindPFlag("logResponseBody", flag.Lookup("log-response-body"))
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -110,7 +119,7 @@ func main() {
 
 	defer logger.Sync()
 
-	w := zapwriter.Writer{Logger: logger}
+	w := zapwriter.Writer{Logger: logger, Config: &config}
 
 	core.Run(&config, &w)
 }

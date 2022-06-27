@@ -35,8 +35,9 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	if w.Config.LogPostBody && response.Request.ContentLength > 0 {
 		requestBodyBytes, err := ioutil.ReadAll(response.Request.Body)
 		if err != nil {
-			log.Fatal(err)
-			panic(err)
+			log.Print(err)
+
+			return err
 		}
 
 		response.Request.Body = ioutil.NopCloser(bytes.NewBuffer(requestBodyBytes))
@@ -63,8 +64,9 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	if w.Config.LogResponseBody && response.ContentLength > 0 {
 		responseBodyBytes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			log.Fatal(err)
-			panic(err)
+			log.Print(err)
+
+			return err
 		}
 		response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBodyBytes))
 

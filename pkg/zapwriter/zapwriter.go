@@ -31,20 +31,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		}
 	}
 
-	// TODO: Since the request body is already consumed (and therefore nil) we have to obtain it from elsewhere :/
-	requestBodyString := ""
-	// if w.Config.LogPostBody && response.Request.ContentLength > 0 {
-	// 	requestBodyBytes, err := ioutil.ReadAll(response.Request.Body)
-	// 	if err != nil {
-	// 		log.Print(err)
-
-	// 		return err
-	// 	}
-
-	// 	response.Request.Body = ioutil.NopCloser(bytes.NewBuffer(requestBodyBytes))
-
-	// 	requestBodyString = string(requestBodyBytes)
-	// }
+	requestBodyString := response.Request.Context().Value(core.ProfilingContextKey("requestBodyString")).(string)
 
 	connectionStart := response.Request.Context().Value(core.ProfilingContextKey("connectionStart")).(time.Time)
 	connectionEnd := response.Request.Context().Value(core.ProfilingContextKey("connectionEnd")).(time.Time)

@@ -1,7 +1,10 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -35,13 +38,32 @@ func newProfilingTransport() *ProfilingTransport {
 func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	ctxRoundTripStart := context.WithValue(r.Context(), ProfilingContextKey("roundTripStart"), time.Now())
 
-	response, err := transport.roundTripper.RoundTrip(r.WithContext(ctxRoundTripStart))
+	requestBodyString := ""
 
-	ctxRoundTripEnd := context.WithValue(response.Request.Context(), ProfilingContextKey("roundTripEnd"), time.Now())
-	ctxConnectionStart := context.WithValue(ctxRoundTripEnd, ProfilingContextKey("connectionStart"), transport.connectionStart)
+	if r.ContentLength > 0 {
+		func() {
+			requestBodyBytes, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				log.Print(err)
+
+				return
+			}
+
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(requestBodyBytes))
+
+			requestBodyString = string(requestBodyBytes)
+		}()
+	}
+
+	ctxRequestBodyString := context.WithValue(ctxRoundTripStart, ProfilingContextKey("requestBodyString"), requestBodyString)
+
+	response, err := transport.roundTripper.RoundTrip(r.WithContext(ctxRequestBodyString))
+
+	ctxConnectionStart := context.WithValue(response.Request.Context(), ProfilingContextKey("connectionStart"), transport.connectionStart)
 	ctxConnectionEnd := context.WithValue(ctxConnectionStart, ProfilingContextKey("connectionEnd"), transport.connectionEnd)
+	ctxRoundTripEnd := context.WithValue(ctxConnectionEnd, ProfilingContextKey("roundTripEnd"), time.Now())
 
-	response.Request = response.Request.WithContext(ctxConnectionEnd)
+	response.Request = response.Request.WithContext(ctxRoundTripEnd)
 
 	return response, err
 }

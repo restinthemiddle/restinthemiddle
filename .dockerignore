@@ -1,8 +1,9 @@
 .git
+.github
 bin
 build
 build_native
-core
-logwriter
 restinthemiddle
+Dockerfile
+Makefile
 README.md

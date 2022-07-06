@@ -36,8 +36,6 @@ func newProfilingTransport() *ProfilingTransport {
 }
 
 func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	ctxRoundTripStart := context.WithValue(r.Context(), ProfilingContextKey("roundTripStart"), time.Now())
-
 	requestBodyString := ""
 
 	if r.ContentLength > 0 {
@@ -55,9 +53,10 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 		}()
 	}
 
-	ctxRequestBodyString := context.WithValue(ctxRoundTripStart, ProfilingContextKey("requestBodyString"), requestBodyString)
+	ctxRequestBodyString := context.WithValue(r.Context(), ProfilingContextKey("requestBodyString"), requestBodyString)
+	ctxRoundTripStart := context.WithValue(ctxRequestBodyString, ProfilingContextKey("roundTripStart"), time.Now())
 
-	response, err := transport.roundTripper.RoundTrip(r.WithContext(ctxRequestBodyString))
+	response, err := transport.roundTripper.RoundTrip(r.WithContext(ctxRoundTripStart))
 
 	ctxConnectionStart := context.WithValue(response.Request.Context(), ProfilingContextKey("connectionStart"), transport.connectionStart)
 	ctxConnectionEnd := context.WithValue(ctxConnectionStart, ProfilingContextKey("connectionEnd"), transport.connectionEnd)

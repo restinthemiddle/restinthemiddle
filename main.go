@@ -40,10 +40,10 @@ func main() {
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		log.Fatalf(err.Error())
 	}
 
-	viper.SetDefault("targetHostDsn", "http://host.docker.internal:8081")
+	viper.SetDefault("targetHostDsn", "")
 	viper.SetDefault("listenIp", "0.0.0.0")
 	viper.SetDefault("listenPort", "8000")
 	viper.SetDefault("headers", make(map[string]string, 0))
@@ -55,12 +55,20 @@ func main() {
 
 	viper.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
 	viper.BindEnv("listenIp", "LISTEN_IP")
-	viper.BindEnv("listenPort", "LISTEN_PORT", "PORT")
+	viper.BindEnv("listenPort", "LISTEN_PORT")
 	viper.BindEnv("loggingEnabled", "LOGGING_ENABLED")
 	viper.BindEnv("setRequestId", "SET_REQUEST_ID")
 	viper.BindEnv("exclude", "EXCLUDE")
 	viper.BindEnv("logPostBody", "LOG_POST_BODY")
 	viper.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")
+
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+
+	viper.AddConfigPath("/etc/restinthemiddle")
+	viper.AddConfigPath("/restinthemiddle")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath(homeDir + "/restinthemiddle")
 
 	viper.BindPFlag("targetHostDsn", flag.Lookup("target-host-dsn"))
 	viper.BindPFlag("listenIp", flag.Lookup("listen-ip"))
@@ -71,24 +79,16 @@ func main() {
 	viper.BindPFlag("logPostBody", flag.Lookup("log-post-body"))
 	viper.BindPFlag("logResponseBody", flag.Lookup("log-response-body"))
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-
-	viper.AddConfigPath("/etc/restinthemiddle")
-	viper.AddConfigPath("/restinthemiddle")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath(homeDir + "/restinthemiddle")
-
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			panic(err)
+			log.Fatalf(err.Error())
 		}
 	}
 
 	config := core.Config{}
 
 	if err := viper.Unmarshal(&config); err != nil {
-		log.Panicf("unable to decode into struct, %v", err)
+		log.Fatalf("unable to decode into struct, %v", err)
 	}
 
 	for _, item := range headers {
@@ -105,6 +105,10 @@ func main() {
 	}
 	config.Headers = headersProcessed
 
+	if config.TargetHostDsn == "" {
+		log.Fatalf("No target host given.")
+	}
+
 	config.PrintConfig()
 
 	configFileUsed := viper.ConfigFileUsed()
@@ -114,7 +118,7 @@ func main() {
 
 	logger, err := zap.NewProduction()
 	if err != nil {
-		log.Panicf("unable to initialize Zap logger")
+		log.Fatalf(err.Error())
 	}
 
 	defer logger.Sync()

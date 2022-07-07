@@ -21,7 +21,7 @@ var proxy *httputil.ReverseProxy
 func getExcludeRegexp(exclude string) *regexp.Regexp {
 	regex, err := regexp.Compile(exclude)
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf(err.Error())
 	}
 
 	return regex
@@ -30,7 +30,7 @@ func getExcludeRegexp(exclude string) *regexp.Regexp {
 func getTargetURL(targetHostDsn string) *url.URL {
 	url, err := url.Parse(targetHostDsn)
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf(err.Error())
 	}
 
 	return url
@@ -66,7 +66,7 @@ func Run(c *Config, w Writer) {
 
 	http.HandleFunc("/", handleRequest)
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIp, cfg.ListenPort), nil); err != nil {
-		log.Panic(err)
+		log.Fatalf(err.Error())
 	}
 }
 

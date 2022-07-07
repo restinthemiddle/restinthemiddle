@@ -1,4 +1,4 @@
-# Restinthemiddle
+# Restinthemiddle v2
 
 ![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle?style=flat)
 ![semver](https://img.shields.io/github/v/tag/jensschulze/restinthemiddle?style=flat&sort=semver)
@@ -12,29 +12,29 @@ This lightweight application acts as a HTTP logging proxy for developing and sta
 Pull the [Docker image](https://hub.docker.com/repository/docker/jdschulze/restinthemiddle) from Docker Hub
 
 ```bash
-docker pull jdschulze/restinthemiddle:1
+docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch, regardless if the commit is tagged or not.
+Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch, regardless if the commit is tagged or not.
 
 ### Build the Docker image yourself
 
-Clone this repository and run the `build` script.
+Clone this repository and run `make docker`.
 
 ```bash
 git clone https://github.com/jensschulze/restinthemiddle.git
 cd restinthemiddle
-./build
+make docker
 ```
 
 ### Build the binary yourself
 
-Clone this repository and run the `build_native` script.
+Clone this repository and run `make native`.
 
 ```bash
 git clone https://github.com/jensschulze/restinthemiddle.git
 cd restinthemiddle
-./build_native
+make native
 ```
 
 ## Usage
@@ -72,8 +72,7 @@ The ascending order of precedence (last wins) is:
 * restinthemiddle default values
 * Configuration via YAML file
 * Configuration via Environment variables
-
-Of course you may provide an incomplete configuration.
+* Command line arguments
 
 The default configuration looks like this:
 
@@ -90,15 +89,15 @@ exclude: ""
 
 #### Keys
 
-| Configuration key | Environment variable  | Description | Default value |
-|---|---|---|---|
-| `targetHostDsn` (required) | `TARGET_HOST_DSN` | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | - |
-| `listenIp` (optional) | `LISTEN_IP` | The IP on which Restinthemiddle listens for requests. | `0.0.0.0` |
-| `listenPort` (optional) | `LISTEN_PORT` (recommended) or `PORT` (deprecated) | The port on which Restinthemiddle listens for to requests. In order to ensure backwards compatibility to 0.x you can still use the deprecated `PORT` instead. | `8000` |
-| `headers` (optional) | - | A dictionary of HTTP headers. **Important:** It is not possible to populate this via environment variables. If you want to change the `headers` you have to use a configuration file. | `User-Agent: Rest in the middle logging proxy` |
-| `loggingEnabled` (optional) | `LOGGING_ENABLED` | | `true` |
-| `setRequestId` (optional) | `SET_REQUEST_ID` | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID. | `false` |
-| `exclude` (optional) | `EXCLUDE` | If the given URL path matches this Regular Expression the request/response will not be logged. | `""` |
+| Configuration key           | Environment variable | Command line flag | Description                                                                                                                                                  | Default value                                  |
+|-----------------------------|----------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `targetHostDsn` (required)  | `TARGET_HOST_DSN`    | --target-host-dsn | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
+| `listenIp` (optional)       | `LISTEN_IP`          | --listen-ip       | The IP on which Restinthemiddle listens for requests.                                                                                                        | `0.0.0.0`                                      |
+| `listenPort` (optional)     | `LISTEN_PORT`        | --listen-port     | The port on which Restinthemiddle listens for to requests.                                                                                                   | `8000`                                         |
+| `headers` (optional)        | -                    | --headers         | A dictionary of HTTP headers.                                                                                                                                | `User-Agent: Rest in the middle logging proxy` |
+| `loggingEnabled` (optional) | `LOGGING_ENABLED`    | --logging-enabled | Enable logging.                                                                                                                                              | `true`                                         |
+| `setRequestId` (optional)   | `SET_REQUEST_ID`     | --set-request-id  | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID.                                                                   | `false`                                        |
+| `exclude` (optional)        | `EXCLUDE`            | --exclude         | If the given URL path matches this Regular Expression the request/response will not be logged.                                                               | `""`                                           |
 
 ##### The target host DSN
 
@@ -109,7 +108,17 @@ exclude: ""
 * `hostname` (required)
 * `port` is optional. Standard ports are `80` (http) and `443` (https).
 * `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
-* `query` is optional. If set, `query` will precede the actual request’s query.
+* `query` is optional. If set, `query` will precede the actual request's query.
+
+##### Headers
+
+If a header is defined multiple times, the last assignment wins.
+
+If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g. a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the *target host DSN* string:
+
+```bash
+docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8000:8000 jdschulze/restinthemiddle:2 --header="Authorization:Bearer ABCD1234"
+```
 
 ## Examples
 
@@ -119,7 +128,7 @@ We want to log HTTP calls against `www.example.com` over an insecure connection.
 
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -p 8000:8000 jdschulze/restinthemiddle
+docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against http://www.example.com/api/visitors
 curl -i http://127.0.0.1:8000/api/visitors
@@ -133,17 +142,19 @@ Note that the base path defined in `TARGET_HOST_DSN` prefixes any subsequent cal
 
 ```bash
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle
+docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against https://user:pass@www.example.com:4430/api/visitors?start=1577833200
 curl -i http://127.0.0.1:8000/visitors
 ```
 
-### With configuration
+### Setting/changing headers
 
 We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a custom header `X-App-Version: 3.0.0`. No logging shall take place.
 
-#### config.yaml
+#### With configuration file
+
+##### config.yaml
 
 ```yaml
 targetHostDsn: http://www.example.com
@@ -154,10 +165,17 @@ loggingEnabled: false
 
 ```bash
 # Set up the proxy
-docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:latest
+docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against http://www.example.com/home
 curl -i http://127.0.0.1:8000/home
+```
+
+#### With command line arguments
+
+```bash
+# Set up the proxy
+docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 --target-host-dsn=http://www.example.com --header=x-app-version:3.0.0
 ```
 
 ### Helm Chart for Kubernetes

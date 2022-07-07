@@ -17,5 +17,7 @@ FROM ${BASE_IMAGE_RELEASE}
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
 COPY --from=build-env /src/restinthemiddle /usr/local/bin/
+COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/local/bin/restinthemiddle"]

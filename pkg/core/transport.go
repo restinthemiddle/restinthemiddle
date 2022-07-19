@@ -40,6 +40,10 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 
 	if r.ContentLength > 0 {
 		func() {
+			if cfg.ExcludePostBodyRegexp.String() != "" && cfg.ExcludePostBodyRegexp.MatchString(r.URL.Path) {
+				return
+			}
+
 			requestBodyBytes, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				log.Print(err)

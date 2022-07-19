@@ -65,7 +65,8 @@ You may as well use Restinthemiddle as an alternative entrypoint for your applic
 
 Configuration is handled by [spf13/viper](https://pkg.go.dev/github.com/spf13/viper).
 
-Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via environment variables.
+Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via environment variables - almost!
+Headers have to be set via command line arguments or the configuration file.
 
 The ascending order of precedence (last wins) is:
 
@@ -74,30 +75,45 @@ The ascending order of precedence (last wins) is:
 * Configuration via Environment variables
 * Command line arguments
 
-The default configuration looks like this:
+Example configuration file:
 
 ```yaml
-targetHostDsn: http://host.docker.internal:8081
+targetHostDsn: www.example.com
 listenIp: 0.0.0.0
 listenPort: "8000"
 headers:
-    User-Agent: Rest in the middle logging proxy
+    X-My-Header: myexamplevalue
 loggingEnabled: true
 setRequestId: false
 exclude: ""
+logPostBody: true
+logResponseBody: true
+excludePostBody: ""
+excludeResponseBody: ""
 ```
+
+There are several file locations where configuration is being searched for. The ascending order of precedence (last wins) is:
+
+* `/etc/restinthemiddle/config.yaml`
+* `/restinthemiddle/config.yaml`
+* `$HOME/.restinthemiddle/config.yaml`
+* `./config.yaml`
 
 #### Keys
 
-| Configuration key           | Environment variable | Command line flag | Description                                                                                                                                                  | Default value                                  |
-|-----------------------------|----------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `targetHostDsn` (required)  | `TARGET_HOST_DSN`    | --target-host-dsn | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
-| `listenIp` (optional)       | `LISTEN_IP`          | --listen-ip       | The IP on which Restinthemiddle listens for requests.                                                                                                        | `0.0.0.0`                                      |
-| `listenPort` (optional)     | `LISTEN_PORT`        | --listen-port     | The port on which Restinthemiddle listens for to requests.                                                                                                   | `8000`                                         |
-| `headers` (optional)        | -                    | --headers         | A dictionary of HTTP headers.                                                                                                                                | `User-Agent: Rest in the middle logging proxy` |
-| `loggingEnabled` (optional) | `LOGGING_ENABLED`    | --logging-enabled | Enable logging.                                                                                                                                              | `true`                                         |
-| `setRequestId` (optional)   | `SET_REQUEST_ID`     | --set-request-id  | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID.                                                                   | `false`                                        |
-| `exclude` (optional)        | `EXCLUDE`            | --exclude         | If the given URL path matches this Regular Expression the request/response will not be logged.                                                               | `""`                                           |
+| Configuration key                | Environment variable    | Command line flag       | Description                                                                                                                                                  | Default value                                  |
+|----------------------------------|-------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `targetHostDsn` (required)       | `TARGET_HOST_DSN`       | --target-host-dsn       | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
+| `listenIp` (optional)            | `LISTEN_IP`             | --listen-ip             | The IP on which Restinthemiddle listens for requests.                                                                                                        | `0.0.0.0`                                      |
+| `listenPort` (optional)          | `LISTEN_PORT`           | --listen-port           | The port on which Restinthemiddle listens for to requests.                                                                                                   | `8000`                                         |
+| `headers` (optional)             | -                       | --headers               | A dictionary of HTTP headers.                                                                                                                                | `User-Agent: Rest in the middle logging proxy` |
+| `loggingEnabled` (optional)      | `LOGGING_ENABLED`       | --logging-enabled       | Enable logging.                                                                                                                                              | `true`                                         |
+| `setRequestId` (optional)        | `SET_REQUEST_ID`        | --set-request-id        | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID.                                                                   | `false`                                        |
+| `exclude` (optional)             | `EXCLUDE`               | --exclude               | If the given URL path matches this Regular Expression this request+response will not be logged.                                                              | `""`                                           |
+| `logPostBody` (optional)         | `LOG_POST_BODY`         | --log-post-body         | Log the request's body.                                                                                                                                      | `""`                                           |
+| `logResponseBody` (optional)     | `LOG_RESPONSE_BODY`     | --log-response-body     | Log the response's body.                                                                                                                                     | `""`                                           |
+| `excludePostBody` (optional)     | `EXCLUDE_POST_BODY`     | --exclude-post-body     | If the given URL path matches this Regular Expression the request body (post) is set empty.                                                                  | `""`                                           |
+| `excludeResponseBody` (optional) | `EXCLUDE_RESPONSE_BODY` | --exclude-response-body | If the given URL path matches this Regular Expression the response body is set emtpy.                                                                        | `""`                                           |
 
 ##### The target host DSN
 

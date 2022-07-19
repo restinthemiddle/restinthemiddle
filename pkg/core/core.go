@@ -6,35 +6,15 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
 )
 
-var cfg Config
+var cfg *TranslatedConfig
 var wrt Writer
-var targetURL *url.URL
-var excludeRegexp *regexp.Regexp
+
 var proxy *httputil.ReverseProxy
-
-func getExcludeRegexp(exclude string) *regexp.Regexp {
-	regex, err := regexp.Compile(exclude)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	return regex
-}
-
-func getTargetURL(targetHostDsn string) *url.URL {
-	url, err := url.Parse(targetHostDsn)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	return url
-}
 
 func handleRequest(response http.ResponseWriter, request *http.Request) {
 	proxy.ServeHTTP(response, request)
@@ -45,23 +25,18 @@ func logResponse(response *http.Response) (err error) {
 		return nil
 	}
 
-	if cfg.Exclude != "" {
-		if excludeRegexp.MatchString(response.Request.URL.Path) {
-			return nil
-		}
+	if cfg.ExcludeRegexp.String() != "" && cfg.ExcludeRegexp.MatchString(response.Request.URL.Path) {
+		return nil
 	}
 
 	return wrt.LogResponse(response)
 }
 
-func Run(c *Config, w Writer) {
-	cfg = *c
+func Run(c *TranslatedConfig, w Writer) {
+	cfg = c
 	wrt = w
 
-	targetURL = getTargetURL(cfg.TargetHostDsn)
-	excludeRegexp = getExcludeRegexp(cfg.Exclude)
-
-	proxy = newSingleHostReverseProxy(targetURL)
+	proxy = newSingleHostReverseProxy(cfg.TargetURL)
 	proxy.ModifyResponse = logResponse
 
 	http.HandleFunc("/", handleRequest)

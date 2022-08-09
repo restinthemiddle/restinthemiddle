@@ -132,7 +132,7 @@ There are several file locations where configuration is being searched for. The 
 
 If a header is defined multiple times, the last assignment wins.
 
-If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g. a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the *target host DSN* string:
+If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g. a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the _target host DSN_ string:
 
 ```bash
 docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8000:8000 jdschulze/restinthemiddle:2 --header="Authorization:Bearer ABCD1234"

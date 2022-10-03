@@ -1,5 +1,5 @@
-ARG BASE_IMAGE_BUILD=golang:1.18-alpine
-ARG BASE_IMAGE_RELEASE=alpine:3.16
+ARG BASE_IMAGE_BUILD=golang:1.19-alpine
+ARG BASE_IMAGE_RELEASE=scratch
 
 FROM ${BASE_IMAGE_BUILD} AS build-env
 
@@ -16,8 +16,6 @@ FROM ${BASE_IMAGE_RELEASE}
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
-COPY --from=build-env /src/restinthemiddle /usr/local/bin/
-COPY ./docker-entrypoint.sh /docker-entrypoint.sh
+COPY --from=build-env /src/restinthemiddle /
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["/usr/local/bin/restinthemiddle"]
+ENTRYPOINT ["/restinthemiddle"]

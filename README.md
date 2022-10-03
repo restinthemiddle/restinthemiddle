@@ -2,6 +2,8 @@
 
 ![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle?style=flat)
 ![semver](https://img.shields.io/github/v/tag/jensschulze/restinthemiddle?style=flat&sort=semver)
+![size_amd64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/1?arch=amd64)
+![size_arm64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/1?arch=arm64)
 
 This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
 

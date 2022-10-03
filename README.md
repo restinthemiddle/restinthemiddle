@@ -15,7 +15,7 @@ Pull the [Docker image](https://hub.docker.com/repository/docker/jdschulze/resti
 docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch or the latest _git tag_ (most recent wins).
+Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch **or** the latest _git tag_. Most recent wins, so `latest` is absolutely insane.
 
 ### Build the Docker image yourself
 
@@ -30,13 +30,13 @@ make docker
 
 ### Build the binary yourself
 
-Clone this repository and run `make native`.
+Clone this repository and run `make build`.
 
 ```bash
 git clone https://github.com/restinthemiddle/restinthemiddle.git
 cd restinthemiddle
 git checkout v2
-make native
+make build
 ```
 
 ## Usage

@@ -1,7 +1,4 @@
-ARG BASE_IMAGE_BUILD=golang:1.18-alpine
-ARG BASE_IMAGE_RELEASE=alpine:3.15
-
-FROM ${BASE_IMAGE_BUILD} AS build-env
+FROM golang:1.19-alpine AS build-env
 
 WORKDIR /src
 
@@ -12,10 +9,10 @@ COPY . .
 
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o restinthemiddle
 
-FROM ${BASE_IMAGE_RELEASE}
+FROM scratch
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
-COPY --from=build-env /src/restinthemiddle /usr/local/bin/
+COPY --from=build-env /src/restinthemiddle /
 
-CMD ["/usr/local/bin/restinthemiddle"]
+ENTRYPOINT ["/restinthemiddle"]

@@ -1,9 +1,8 @@
 .git
 .github
+.gitignore
 bin
-build
-build_native
-restinthemiddle
 Dockerfile
+License
 Makefile
 README.md

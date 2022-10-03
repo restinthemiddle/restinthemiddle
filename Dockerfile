@@ -1,7 +1,4 @@
-ARG BASE_IMAGE_BUILD=golang:1.19-alpine
-ARG BASE_IMAGE_RELEASE=scratch
-
-FROM ${BASE_IMAGE_BUILD} AS build-env
+FROM golang:1.19-alpine AS build-env
 
 WORKDIR /src
 
@@ -12,7 +9,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o restinthemiddle
 
-FROM ${BASE_IMAGE_RELEASE}
+FROM scratch
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 

@@ -1,5 +1,7 @@
 # Restinthemiddle
 
+**DEVELOPMENT TAKES PLACE IN THE [v2 branch](https://github.com/restinthemiddle/restinthemiddle/tree/v2). MAYBE I WILL BACKPORT SOME THINGS FROM THERE, BUT THAT WILL BE PREETTY MUCH ALL!**
+
 ![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle?style=flat)
 ![semver](https://img.shields.io/github/v/tag/jensschulze/restinthemiddle?style=flat&sort=semver)
 ![size_amd64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/1?arch=amd64)

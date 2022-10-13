@@ -99,7 +99,6 @@ excludeResponseBody: ""
 There are several file locations where configuration is being searched for. The ascending order of precedence (last wins) is:
 
 * `/etc/restinthemiddle/config.yaml`
-* `/restinthemiddle/config.yaml`
 * `$HOME/.restinthemiddle/config.yaml`
 * `./config.yaml`
 

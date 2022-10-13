@@ -74,7 +74,6 @@ func main() {
 	viper.SetConfigType("yaml")
 
 	viper.AddConfigPath("/etc/restinthemiddle")
-	viper.AddConfigPath("/restinthemiddle")
 	viper.AddConfigPath(homeDir + "/.restinthemiddle")
 	viper.AddConfigPath(".")
 

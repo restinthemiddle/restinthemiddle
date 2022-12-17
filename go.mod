@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/restinthemiddle/core v0.0.0-20220104234310-3a983e97c33a
+	github.com/restinthemiddle/core/v2 v2.0.0
 	github.com/restinthemiddle/logwriter v0.0.0-20220428214508-d6d65854d82f
 	github.com/spf13/viper v1.14.0
 	gopkg.in/yaml.v3 v3.0.1

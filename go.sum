@@ -152,6 +152,7 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/restinthemiddle/core v0.0.0-20220104234310-3a983e97c33a h1:g/H4lkD+7CysLxM9yi1rWq4sD5/URKhPt6VCffdHIqQ=
 github.com/restinthemiddle/core v0.0.0-20220104234310-3a983e97c33a/go.mod h1:xAS9gZzteqj8/8/f3BGzpEg/yvwb0fJ+XXWMMe3RY3s=
+github.com/restinthemiddle/core/v2 v2.0.0/go.mod h1:q4KVuZY0RtolagVzK0+e4XFmM3efBC41PPkPYj/T7Pw=
 github.com/restinthemiddle/logwriter v0.0.0-20220428214508-d6d65854d82f h1:9iWsI3BOXgIGt7jM0uJ9ydWXd4/RK+19Ag9SnhYCW40=
 github.com/restinthemiddle/logwriter v0.0.0-20220428214508-d6d65854d82f/go.mod h1:C8s8hmgC1x9LQcPSW633O2rPsaCvj5rV87tEA732hfE=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=

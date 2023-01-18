@@ -13,7 +13,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle
 
-FROM scratch as artifact
+FROM busybox:latest as artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 

@@ -199,4 +199,12 @@ docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 --target-host-dsn=h
 
 ### Helm Chart for Kubernetes
 
-There is a Helm Chart for Restinthemiddle at [https://github.com/jensschulze/restinthemiddle-helm](https://github.com/jensschulze/restinthemiddle-helm). In most cases you will use Restinthemiddle as a [conditional dependency](https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags) in your charts.
+There is a Helm Chart for Restinthemiddle at [https://github.com/restinthemiddle/helm](https://github.com/restinthemiddle/helm).
+You may want to add the restinthemiddle Helm repository:
+
+```shell
+helm repo add restinthemiddle https://restinthemiddle.github.io/helm
+helm repo update
+```
+
+In most cases you will use Restinthemiddle as a [conditional dependency](https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags) in your charts.

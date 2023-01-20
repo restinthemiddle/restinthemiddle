@@ -10,7 +10,56 @@ import (
 
 	"github.com/restinthemiddle/restinthemiddle/pkg/core"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
+
+// HTTPTiming contains several connection related time metrics
+type HTTPTiming struct {
+	GetConn              time.Time
+	GotConn              time.Time
+	ConnEstDuration      time.Duration
+	ConnectionStart      time.Time
+	ConnectionEnd        time.Time
+	ConnectionDuration   time.Duration
+	RoundTripStart       time.Time
+	RoundTripEnd         time.Time
+	RoundTripDuration    time.Duration
+	GotFirstResponseByte time.Time
+	TLSHandshakeStart    time.Time
+	TLSHandshakeDone     time.Time
+	TLSHandshakeDuration time.Duration
+}
+
+func (t HTTPTiming) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddTime("get_conn", t.GetConn)
+	enc.AddTime("got_conn", t.GotConn)
+	enc.AddDuration("conn_establish_duration", t.ConnEstDuration)
+	enc.AddTime("connection_start", t.ConnectionStart)
+	enc.AddTime("connection_end", t.ConnectionEnd)
+	enc.AddDuration("connection_duration", t.ConnectionDuration)
+	enc.AddTime("roundtrip_start", t.RoundTripStart)
+	enc.AddTime("roundtrip_end", t.RoundTripEnd)
+	enc.AddDuration("roundtrip_duration", t.RoundTripDuration)
+	enc.AddTime("got_first_response_byte", t.GotFirstResponseByte)
+	enc.AddTime("tls_handshake_start", t.TLSHandshakeStart)
+	enc.AddTime("tls_handshake_done", t.TLSHandshakeDone)
+	enc.AddDuration("tls_handshake_duration", t.TLSHandshakeDuration)
+	return nil
+}
+
+func NewHTTPTimingFromCore(ct *core.HTTPTiming) (HTTPTiming, error) {
+	t := HTTPTiming{
+		GetConn:              ct.GetConn,
+		GotConn:              ct.GotConn,
+		ConnEstDuration:      ct.GotConn.Sub(ct.GetConn),
+		GotFirstResponseByte: ct.GotFirstResponseByte,
+		TLSHandshakeStart:    ct.TLSHandshakeStart,
+		TLSHandshakeDone:     ct.TLSHandshakeDone,
+		TLSHandshakeDuration: ct.TLSHandshakeDone.Sub(ct.TLSHandshakeStart),
+	}
+
+	return t, nil
+}
 
 type Writer struct {
 	Logger *zap.Logger
@@ -33,13 +82,15 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 
 	requestBodyString := response.Request.Context().Value(core.ProfilingContextKey("requestBodyString")).(string)
 
-	connectionStart := response.Request.Context().Value(core.ProfilingContextKey("connectionStart")).(time.Time)
-	connectionEnd := response.Request.Context().Value(core.ProfilingContextKey("connectionEnd")).(time.Time)
-	connectionDuration := connectionEnd.Sub(connectionStart)
+	timing, _ := NewHTTPTimingFromCore(response.Request.Context().Value(core.ProfilingContextKey("timing")).(*core.HTTPTiming))
 
-	roundTripStart := response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)
-	roundTripEnd := response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)
-	roundTripDuration := roundTripEnd.Sub(roundTripStart)
+	timing.ConnectionStart = response.Request.Context().Value(core.ProfilingContextKey("connectionStart")).(time.Time)
+	timing.ConnectionEnd = response.Request.Context().Value(core.ProfilingContextKey("connectionEnd")).(time.Time)
+	timing.ConnectionDuration = timing.ConnectionEnd.Sub(timing.ConnectionStart)
+
+	timing.RoundTripStart = response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)
+	timing.RoundTripEnd = response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)
+	timing.RoundTripDuration = timing.RoundTripEnd.Sub(timing.RoundTripStart)
 
 	responseHeaders := make([]string, 0)
 	for name, values := range response.Header {
@@ -77,15 +128,10 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		zap.Strings("request_headers", requestHeaders),
 		zap.String("post_body", requestBodyString),
 		zap.Int("status", response.StatusCode),
-		zap.Time("connection_start", connectionStart),
-		zap.Time("connection_end", connectionEnd),
-		zap.Duration("connection_duration", connectionDuration),
-		zap.Time("roundtrip_start", roundTripStart),
-		zap.Time("roundtrip_end", roundTripEnd),
-		zap.Duration("roundtrip_duration", roundTripDuration),
 		zap.Strings("response_headers", responseHeaders),
 		zap.Int64("body_bytes_sent", response.ContentLength),
 		zap.String("response_body", responseBodyString),
+		zap.Object("timing", timing),
 	)
 
 	return nil

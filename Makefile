@@ -1,3 +1,5 @@
+.PHONY: docker, docker-build-env, build
+
 docker:
 	DOCKER_BUILDKIT=1 docker build --pull -t jdschulze/restinthemiddle:latest .
 

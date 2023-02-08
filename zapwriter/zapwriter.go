@@ -3,12 +3,12 @@ package zapwriter
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/restinthemiddle/restinthemiddle/pkg/core"
+	"github.com/restinthemiddle/restinthemiddle/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -110,14 +110,14 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 				return
 			}
 
-			responseBodyBytes, err := ioutil.ReadAll(response.Body)
+			responseBodyBytes, err := io.ReadAll(response.Body)
 			if err != nil {
 				log.Print(err)
 
 				return
 			}
 
-			response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBodyBytes))
+			response.Body = io.NopCloser(bytes.NewBuffer(responseBodyBytes))
 
 			responseBodyString = string(responseBodyBytes)
 		}()

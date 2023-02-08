@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/restinthemiddle/restinthemiddle/pkg/core"
-	"github.com/restinthemiddle/restinthemiddle/pkg/zapwriter"
+	"github.com/restinthemiddle/restinthemiddle/core"
+	"github.com/restinthemiddle/restinthemiddle/zapwriter"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -58,14 +58,14 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 				return
 			}
 
-			requestBodyBytes, err := ioutil.ReadAll(r.Body)
+			requestBodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				log.Print(err)
 
 				return
 			}
 
-			r.Body = ioutil.NopCloser(bytes.NewBuffer(requestBodyBytes))
+			r.Body = io.NopCloser(bytes.NewBuffer(requestBodyBytes))
 
 			requestBodyString = string(requestBodyBytes)
 		}()

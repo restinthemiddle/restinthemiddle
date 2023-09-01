@@ -194,7 +194,7 @@ curl -i http://127.0.0.1:8000/home
 
 ```bash
 # Set up the proxy
-docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 --target-host-dsn=http://www.example.com --header=x-app-version:3.0.0
+docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 restinthemiddle --target-host-dsn=http://www.example.com --header=x-app-version:3.0.0
 ```
 
 ### Helm Chart for Kubernetes
@@ -206,5 +206,3 @@ You may want to add the restinthemiddle Helm repository:
 helm repo add restinthemiddle https://restinthemiddle.github.io/helm
 helm repo update
 ```
-
-In most cases you will use Restinthemiddle as a [conditional dependency](https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags) in your charts.

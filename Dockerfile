@@ -1,10 +1,10 @@
-FROM golang:1.20-alpine AS build-env
+FROM golang:1.21-alpine AS build-env
 
 WORKDIR /src
 
 RUN apk update \
     && apk upgrade \
-    && apk add --no-cache ca-certificates
+    && apk add --no-cache ca-certificates dumb-init
 
 COPY go.* .
 RUN go mod download
@@ -17,8 +17,10 @@ FROM busybox:latest as artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
-COPY --from=build-env /src/restinthemiddle /
+COPY --from=build-env /src/restinthemiddle /usr/bin/restinthemiddle
 
 COPY --from=build-env /etc/ssl /etc/ssl
+COPY --from=build-env /usr/bin/dumb-init /usr/bin/dumb-init
 
-ENTRYPOINT ["/restinthemiddle"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["restinthemiddle"]

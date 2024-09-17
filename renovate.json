@@ -1,10 +1,28 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "baseBranches": [
     "main",
     "v2"
+  ],
+  "packageRules": [
+    {
+      "groupName": "Docker Images",
+      "matchManagers": [
+        "docker"
+      ]
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": [
+        "github-actions"
+      ]
+    },
+    {
+      "managers": ["gomod"],
+      "postUpdateOptions": ["gomodTidy"]
+    }
   ]
 }

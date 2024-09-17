@@ -11,7 +11,7 @@ This lightweight application acts as a HTTP logging proxy for developing and sta
 
 ### Docker (recommended)
 
-Pull the [Docker image](https://hub.docker.com/repository/docker/jdschulze/restinthemiddle) from Docker Hub
+Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags) from Docker Hub
 
 ```bash
 docker pull jdschulze/restinthemiddle:2

@@ -11,7 +11,7 @@
     {
       "groupName": "Docker Images",
       "matchManagers": [
-        "docker"
+        "dockerfile"
       ]
     },
     {

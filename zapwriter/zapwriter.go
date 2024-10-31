@@ -104,7 +104,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	}
 
 	responseBodyString := ""
-	if w.Config.LogResponseBody && response.ContentLength > 0 {
+	if w.Config.LogResponseBody {
 		func() {
 			if w.Config.ExcludeResponseBodyRegexp.String() != "" && w.Config.ExcludeResponseBodyRegexp.MatchString(response.Request.URL.Path) {
 				return
@@ -116,9 +116,9 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 
 				return
 			}
+			response.Body.Close()
 
 			response.Body = io.NopCloser(bytes.NewBuffer(responseBodyBytes))
-
 			responseBodyString = string(responseBodyBytes)
 		}()
 	}

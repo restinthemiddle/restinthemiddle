@@ -49,7 +49,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
-            latest=true
+            latest=${{ github.ref == 'refs/heads/v2' }}
             prefix=
             suffix=
           tags: |

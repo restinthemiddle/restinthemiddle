@@ -21,8 +21,12 @@
       ]
     },
     {
-      "managers": ["gomod"],
-      "postUpdateOptions": ["gomodTidy"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "postUpdateOptions": [
+        "gomodTidy"
+      ]
     }
   ]
 }

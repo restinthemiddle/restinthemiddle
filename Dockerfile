@@ -12,7 +12,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle
 
-FROM alpine:3.20 AS artifact
+FROM alpine:3.21 AS artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 

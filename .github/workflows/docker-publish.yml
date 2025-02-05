@@ -6,9 +6,11 @@ name: Docker
 # documentation.
 
 on:
+  workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "v2"]
     tags: ["*"]
+
 
 env:
   REGISTRY: "docker.io"
@@ -50,10 +52,10 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=${{ github.ref == 'refs/heads/v2' }}
-            prefix=
-            suffix=
           tags: |
             type=edge,branch=main
+            type=ref,event=branch
+            type=sha,format=short
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}

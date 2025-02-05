@@ -6,8 +6,9 @@ name: Docker
 # documentation.
 
 on:
+  workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "v2"]
     tags: ["*"]
 
 env:
@@ -22,8 +23,10 @@ jobs:
       packages: write
 
     steps:
+      # Checkout repository
+      # https://github.com/actions/checkout
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@v4
 
       # Setup buildx
       # https://github.com/docker/setup-buildx-action
@@ -48,10 +51,9 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=${{ github.ref == 'refs/heads/v2' }}
-            prefix=
-            suffix=
           tags: |
             type=edge,branch=main
+            type=sha,format=short
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}

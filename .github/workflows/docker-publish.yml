@@ -54,7 +54,6 @@ jobs:
             latest=${{ github.ref == 'refs/heads/v2' }}
           tags: |
             type=edge,branch=main
-            type=ref,event=branch
             type=sha,format=short
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

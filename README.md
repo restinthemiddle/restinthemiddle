@@ -1,9 +1,10 @@
 # Restinthemiddle v2
 
-![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle?style=flat)
-![semver](https://img.shields.io/github/v/tag/jensschulze/restinthemiddle?style=flat&sort=semver)
-![size_amd64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2?style=flat&arch=amd64)
-![size_arm64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2?style=flat&arch=arm64)
+![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle)
+![v1](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle?filter=1.*)
+![v2](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle?filter=2.*)
+![v2 size_amd64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2.0.0-alpha.21?arch=amd64)
+![v2 size_arm64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2.0.0-alpha.21?arch=arm64)
 
 This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
 
@@ -17,7 +18,7 @@ Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags)
 docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. The `latest` tag is always the `HEAD` of the `main` branch **or** the latest _git tag_. Most recent wins, so `latest` is absolutely insane.
+Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the `latest` tag is always the `HEAD` of the `v2` branch but this can change without notice anytime.
 
 ### Build the Docker image yourself
 
@@ -43,7 +44,7 @@ make build
 
 ## Usage
 
-Typically you place the logging proxy between an application and an API. This is the use case Restinthemiddle was developed for.
+Typically, you place the logging proxy between an application and an API. This is the use case Restinthemiddle was developed for.
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -53,7 +54,7 @@ Typically you place the logging proxy between an application and an API. This is
 +-----------------+         +-----------------+         +-----------------+
 ```
 
-But there are cases where it makes sense to place it between your browser and the application. For example you could want to add custom headers to every request (kind of an off-label use, because no logging is needed):
+But there are cases where it makes sense to place it between your browser and the application. For example, you could want to add custom headers to every request (kind of off-label use, because no logging is needed):
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -74,7 +75,7 @@ Headers have to be set via command line arguments or the configuration file.
 
 The ascending order of precedence (last wins) is:
 
-* restinthemiddle default values
+* Restinthemiddle default values
 * Configuration via YAML file
 * Configuration via Environment variables
 * Command line arguments
@@ -200,7 +201,7 @@ docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 restinthemiddle --t
 ### Helm Chart for Kubernetes
 
 There is a Helm Chart for Restinthemiddle at [https://github.com/restinthemiddle/helm](https://github.com/restinthemiddle/helm).
-You may want to add the restinthemiddle Helm repository:
+You may want to add the Restinthemiddle Helm repository:
 
 ```shell
 helm repo add restinthemiddle https://restinthemiddle.github.io/helm

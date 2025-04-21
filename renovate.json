@@ -4,8 +4,7 @@
     "config:recommended"
   ],
   "baseBranches": [
-    "main",
-    "v2"
+    "main"
   ],
   "packageRules": [
     {

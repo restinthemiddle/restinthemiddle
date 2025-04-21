@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/restinthemiddle/restinthemiddle/core"
+	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
+	"github.com/restinthemiddle/restinthemiddle/pkg/core/transport"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-// HTTPTiming contains several connection related time metrics
+// HTTPTiming contains several connection related time metrics.
 type HTTPTiming struct {
 	GetConn              time.Time
 	GotConn              time.Time
@@ -30,7 +31,7 @@ type HTTPTiming struct {
 	TLSHandshakeDuration time.Duration
 }
 
-// MarshalLogObject is used for the type safe JSON serialization of the HTTPTiming struct
+// MarshalLogObject is used for the type safe JSON serialization of the HTTPTiming struct.
 func (t HTTPTiming) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddTime("get_conn", t.GetConn)
 	enc.AddTime("got_conn", t.GotConn)
@@ -48,8 +49,8 @@ func (t HTTPTiming) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
-// NewHTTPTimingFromCore yields a new, partially hydrated HTTPTiming struct from the eponymous core struct
-func NewHTTPTimingFromCore(ct *core.HTTPTiming) (HTTPTiming, error) {
+// NewHTTPTimingFromCore yields a new, partially hydrated HTTPTiming struct from the eponymous core struct.
+func NewHTTPTimingFromCore(ct *transport.HTTPTiming) (HTTPTiming, error) {
 	t := HTTPTiming{
 		GetConn:              ct.GetConn,
 		GotConn:              ct.GotConn,
@@ -63,10 +64,10 @@ func NewHTTPTimingFromCore(ct *core.HTTPTiming) (HTTPTiming, error) {
 	return t, nil
 }
 
-// Writer is being used to print out logs via the zap library
+// Writer is being used to print out logs via the zap library.
 type Writer struct {
 	Logger *zap.Logger
-	Config *core.TranslatedConfig
+	Config *config.TranslatedConfig
 }
 
 // LogResponse is being called in the eponymous method in core.
@@ -84,16 +85,21 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		}
 	}
 
-	requestBodyString := response.Request.Context().Value(core.ProfilingContextKey("requestBodyString")).(string)
+	requestBodyString := ""
+	if val := response.Request.Context().Value(transport.ProfilingContextKey("requestBodyString")); val != nil {
+		if str, ok := val.(string); ok {
+			requestBodyString = str
+		}
+	}
 
-	timing, _ := NewHTTPTimingFromCore(response.Request.Context().Value(core.ProfilingContextKey("timing")).(*core.HTTPTiming))
+	timing, _ := NewHTTPTimingFromCore(response.Request.Context().Value(transport.ProfilingContextKey("timing")).(*transport.HTTPTiming))
 
-	timing.ConnectionStart = response.Request.Context().Value(core.ProfilingContextKey("connectionStart")).(time.Time)
-	timing.ConnectionEnd = response.Request.Context().Value(core.ProfilingContextKey("connectionEnd")).(time.Time)
+	timing.ConnectionStart = response.Request.Context().Value(transport.ProfilingContextKey("connectionStart")).(time.Time)
+	timing.ConnectionEnd = response.Request.Context().Value(transport.ProfilingContextKey("connectionEnd")).(time.Time)
 	timing.ConnectionDuration = timing.ConnectionEnd.Sub(timing.ConnectionStart)
 
-	timing.RoundTripStart = response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)
-	timing.RoundTripEnd = response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)
+	timing.RoundTripStart = response.Request.Context().Value(transport.ProfilingContextKey("roundTripStart")).(time.Time)
+	timing.RoundTripEnd = response.Request.Context().Value(transport.ProfilingContextKey("roundTripEnd")).(time.Time)
 	timing.RoundTripDuration = timing.RoundTripEnd.Sub(timing.RoundTripStart)
 
 	responseHeaders := make([]string, 0)
@@ -106,7 +112,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	responseBodyString := ""
 	if w.Config.LogResponseBody {
 		func() {
-			if w.Config.ExcludeResponseBodyRegexp.String() != "" && w.Config.ExcludeResponseBodyRegexp.MatchString(response.Request.URL.Path) {
+			if w.Config.ExcludeResponseBodyRegexp != nil && w.Config.ExcludeResponseBodyRegexp.MatchString(response.Request.URL.Path) {
 				return
 			}
 

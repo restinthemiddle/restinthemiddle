@@ -1,4 +1,4 @@
-FROM golang:1.24.2-alpine AS build-env
+FROM golang:1.24.3-alpine AS build-env
 
 WORKDIR /src
 
@@ -10,13 +10,17 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle ./cmd/restinthemiddle/main.go
 
 FROM alpine:3.21 AS artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
-RUN apk -U upgrade
+ENV TZ=UTC
+
+RUN apk -U upgrade \
+    && apk add --no-cache ca-certificates tzdata \
+    && rm -rf /var/cache/apk/*
 
 COPY --from=build-env /src/restinthemiddle /usr/bin/restinthemiddle
 

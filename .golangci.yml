@@ -1,0 +1,50 @@
+version: "2"
+linters:
+  enable:
+    - errcheck
+    - gocognit
+    - goconst
+    - gocritic
+    - godot
+    - godox
+    - gosec
+    - govet
+    - iface
+    - ineffassign
+    - staticcheck
+    - usetesting
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+  settings:
+    godox:
+      keywords:
+        - TODO
+        - FIXME
+        - HACK
+        - BUG
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+output:
+  show-stats: true
+  sort-order:
+    - file
+    - linter

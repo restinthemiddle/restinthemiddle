@@ -8,4 +8,4 @@ docker-build-env:
 
 build:
 	go mod download
-	CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o bin/restinthemiddle
+	CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o bin/restinthemiddle ./cmd/restinthemiddle/main.go

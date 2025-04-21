@@ -1,4 +1,4 @@
-package core
+package core_config
 
 import (
 	"fmt"
@@ -39,8 +39,8 @@ type TranslatedConfig struct {
 	ExcludeResponseBodyRegexp *regexp.Regexp
 }
 
-func (s *SourceConfig) NewTranslatedConfiguration() TranslatedConfig {
-	return TranslatedConfig{
+func (s *SourceConfig) NewTranslatedConfiguration() *TranslatedConfig {
+	return &TranslatedConfig{
 		TargetURL:                 getTargetURL(s.TargetHostDsn),
 		ListenIp:                  s.ListenIp,
 		ListenPort:                s.ListenPort,
@@ -58,7 +58,7 @@ func (s *SourceConfig) NewTranslatedConfiguration() TranslatedConfig {
 func getExcludeRegexp(exclude string) *regexp.Regexp {
 	regex, err := regexp.Compile(exclude)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("%s", err.Error())
 	}
 
 	return regex
@@ -67,7 +67,7 @@ func getExcludeRegexp(exclude string) *regexp.Regexp {
 func getTargetURL(targetHostDsn string) *url.URL {
 	url, err := url.Parse(targetHostDsn)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("%s", err.Error())
 	}
 
 	return url

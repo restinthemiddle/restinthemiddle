@@ -9,9 +9,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 )
 
-var cfg *TranslatedConfig
+var cfg *config.TranslatedConfig
 var wrt Writer
 
 var proxy *httputil.ReverseProxy
@@ -32,7 +33,7 @@ func logResponse(response *http.Response) (err error) {
 	return wrt.LogResponse(response)
 }
 
-func Run(c *TranslatedConfig, w Writer) {
+func Run(c *config.TranslatedConfig, w Writer) {
 	cfg = c
 	wrt = w
 
@@ -41,7 +42,7 @@ func Run(c *TranslatedConfig, w Writer) {
 
 	http.HandleFunc("/", handleRequest)
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIp, cfg.ListenPort), nil); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("%s", err.Error())
 	}
 }
 

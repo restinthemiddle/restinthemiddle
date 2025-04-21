@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/restinthemiddle/restinthemiddle/core"
+	"github.com/restinthemiddle/restinthemiddle/pkg/core"
+	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -66,7 +67,7 @@ func NewHTTPTimingFromCore(ct *core.HTTPTiming) (HTTPTiming, error) {
 // Writer is being used to print out logs via the zap library
 type Writer struct {
 	Logger *zap.Logger
-	Config *core.TranslatedConfig
+	Config *config.TranslatedConfig
 }
 
 // LogResponse is being called in the eponymous method in core.

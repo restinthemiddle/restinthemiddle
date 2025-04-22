@@ -1,4 +1,4 @@
-package core
+package transport
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"time"
+
+	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 )
 
 // HTTPTiming contains several connection related time metrics
@@ -27,17 +29,20 @@ type ProfilingTransport struct {
 	dialer          *net.Dialer
 	connectionStart time.Time
 	connectionEnd   time.Time
+	cfg             *config.TranslatedConfig
 }
 
 // ProfilingContextKey is a special string type
 type ProfilingContextKey string
 
-func newProfilingTransport() *ProfilingTransport {
+// NewProfilingTransport creates a new profiling transport
+func NewProfilingTransport(cfg *config.TranslatedConfig) *ProfilingTransport {
 	transport := &ProfilingTransport{
 		dialer: &net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		},
+		cfg: cfg,
 	}
 	transport.roundTripper = &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
@@ -48,25 +53,22 @@ func newProfilingTransport() *ProfilingTransport {
 	return transport
 }
 
-// RoundTrip facilitates several timing meausurements
+// RoundTrip facilitates several timing measurements
 func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	requestBodyString := ""
 
 	if r.ContentLength > 0 {
 		func() {
-			if cfg.ExcludePostBodyRegexp.String() != "" && cfg.ExcludePostBodyRegexp.MatchString(r.URL.Path) {
+			if transport.cfg.ExcludePostBodyRegexp.String() != "" && transport.cfg.ExcludePostBodyRegexp.MatchString(r.URL.Path) {
 				return
 			}
 
 			requestBodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				log.Print(err)
-
 				return
 			}
-
 			r.Body = io.NopCloser(bytes.NewBuffer(requestBodyBytes))
-
 			requestBodyString = string(requestBodyBytes)
 		}()
 	}
@@ -77,7 +79,6 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 	timing := &HTTPTiming{}
 
 	trace := &httptrace.ClientTrace{
-
 		GetConn: func(hostPort string) {
 			timing.GetConn = time.Now()
 		},
@@ -111,10 +112,7 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 
 func (transport *ProfilingTransport) dial(network, addr string) (net.Conn, error) {
 	transport.connectionStart = time.Now()
-
 	connections, err := transport.dialer.Dial(network, addr)
-
 	transport.connectionEnd = time.Now()
-
 	return connections, err
 }

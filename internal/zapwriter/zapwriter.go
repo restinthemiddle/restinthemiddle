@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/restinthemiddle/restinthemiddle/pkg/core"
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
+	"github.com/restinthemiddle/restinthemiddle/pkg/core/transport"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -50,7 +50,7 @@ func (t HTTPTiming) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 }
 
 // NewHTTPTimingFromCore yields a new, partially hydrated HTTPTiming struct from the eponymous core struct
-func NewHTTPTimingFromCore(ct *core.HTTPTiming) (HTTPTiming, error) {
+func NewHTTPTimingFromCore(ct *transport.HTTPTiming) (HTTPTiming, error) {
 	t := HTTPTiming{
 		GetConn:              ct.GetConn,
 		GotConn:              ct.GotConn,
@@ -85,16 +85,21 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 		}
 	}
 
-	requestBodyString := response.Request.Context().Value(core.ProfilingContextKey("requestBodyString")).(string)
+	requestBodyString := ""
+	if val := response.Request.Context().Value(transport.ProfilingContextKey("requestBodyString")); val != nil {
+		if str, ok := val.(string); ok {
+			requestBodyString = str
+		}
+	}
 
-	timing, _ := NewHTTPTimingFromCore(response.Request.Context().Value(core.ProfilingContextKey("timing")).(*core.HTTPTiming))
+	timing, _ := NewHTTPTimingFromCore(response.Request.Context().Value(transport.ProfilingContextKey("timing")).(*transport.HTTPTiming))
 
-	timing.ConnectionStart = response.Request.Context().Value(core.ProfilingContextKey("connectionStart")).(time.Time)
-	timing.ConnectionEnd = response.Request.Context().Value(core.ProfilingContextKey("connectionEnd")).(time.Time)
+	timing.ConnectionStart = response.Request.Context().Value(transport.ProfilingContextKey("connectionStart")).(time.Time)
+	timing.ConnectionEnd = response.Request.Context().Value(transport.ProfilingContextKey("connectionEnd")).(time.Time)
 	timing.ConnectionDuration = timing.ConnectionEnd.Sub(timing.ConnectionStart)
 
-	timing.RoundTripStart = response.Request.Context().Value(core.ProfilingContextKey("roundTripStart")).(time.Time)
-	timing.RoundTripEnd = response.Request.Context().Value(core.ProfilingContextKey("roundTripEnd")).(time.Time)
+	timing.RoundTripStart = response.Request.Context().Value(transport.ProfilingContextKey("roundTripStart")).(time.Time)
+	timing.RoundTripEnd = response.Request.Context().Value(transport.ProfilingContextKey("roundTripEnd")).(time.Time)
 	timing.RoundTripDuration = timing.RoundTripEnd.Sub(timing.RoundTripStart)
 
 	responseHeaders := make([]string, 0)

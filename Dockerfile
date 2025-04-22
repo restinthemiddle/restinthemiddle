@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle ./cmd/restinthemiddle/main.go
 
 FROM alpine:3.21 AS artifact
 

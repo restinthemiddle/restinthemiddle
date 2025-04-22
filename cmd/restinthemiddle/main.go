@@ -37,18 +37,18 @@ func main() {
 
 func Load() (*config.TranslatedConfig, error) {
 	var headers []string
-	var targetHostDsn, listenIp, listenPort string
-	var loggingEnabled, setRequestId bool
+	var targetHostDSN, listenIP, listenPort string
+	var loggingEnabled, setRequestID bool
 	var exclude, excludePostBody, excludeResponseBody string
 	var logPostBody, logResponseBody bool
 
 	// Define flags
 	flag.StringSliceVar(&headers, "header", []string{}, "HTTP header to set. You may use this flag multiple times.")
-	flag.StringVar(&targetHostDsn, "target-host-dsn", "", "Target host DSN to proxy requests to")
-	flag.StringVar(&listenIp, "listen-ip", "0.0.0.0", "IP address to listen on")
+	flag.StringVar(&targetHostDSN, "target-host-dsn", "", "Target host DSN to proxy requests to")
+	flag.StringVar(&listenIP, "listen-ip", "0.0.0.0", "IP address to listen on")
 	flag.StringVar(&listenPort, "listen-port", "8000", "Port to listen on")
 	flag.BoolVar(&loggingEnabled, "logging-enabled", true, "Enable logging")
-	flag.BoolVar(&setRequestId, "set-request-id", false, "Set request ID")
+	flag.BoolVar(&setRequestID, "set-request-id", false, "Set request ID")
 	flag.StringVar(&exclude, "exclude", "", "Regex pattern to exclude from logging")
 	flag.BoolVar(&logPostBody, "log-post-body", true, "Log POST request body")
 	flag.BoolVar(&logResponseBody, "log-response-body", true, "Log response body")
@@ -75,8 +75,20 @@ func Load() (*config.TranslatedConfig, error) {
 	// Set defaults and bind environment variables
 	for key, value := range defaults {
 		v.SetDefault(key, value)
-		v.BindEnv(key, strings.ToUpper(key))
 	}
+
+	// Bind environment variables with proper SCREAMING_SNAKE_CASE
+	v.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
+	v.BindEnv("listenIp", "LISTEN_IP")
+	v.BindEnv("listenPort", "LISTEN_PORT")
+	v.BindEnv("headers", "HEADERS")
+	v.BindEnv("loggingEnabled", "LOGGING_ENABLED")
+	v.BindEnv("setRequestId", "SET_REQUEST_ID")
+	v.BindEnv("exclude", "EXCLUDE")
+	v.BindEnv("logPostBody", "LOG_POST_BODY")
+	v.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")
+	v.BindEnv("excludePostBody", "EXCLUDE_POST_BODY")
+	v.BindEnv("excludeResponseBody", "EXCLUDE_RESPONSE_BODY")
 
 	// Bind all flags to viper
 	if err := v.BindPFlags(flag.CommandLine); err != nil {
@@ -111,17 +123,17 @@ func Load() (*config.TranslatedConfig, error) {
 	}
 
 	// Update config with flag values if they are set
-	if targetHostDsn != "" {
-		cfg.TargetHostDsn = targetHostDsn
+	if targetHostDSN != "" {
+		cfg.TargetHostDSN = targetHostDSN
 	}
-	if listenIp != "0.0.0.0" {
-		cfg.ListenIp = listenIp
+	if listenIP != "0.0.0.0" {
+		cfg.ListenIP = listenIP
 	}
 	if listenPort != "8000" {
 		cfg.ListenPort = listenPort
 	}
 	cfg.LoggingEnabled = loggingEnabled
-	cfg.SetRequestId = setRequestId
+	cfg.SetRequestID = setRequestID
 	if exclude != "" {
 		cfg.Exclude = exclude
 	}
@@ -150,7 +162,7 @@ func Load() (*config.TranslatedConfig, error) {
 	}
 	cfg.Headers = headersProcessed
 
-	if cfg.TargetHostDsn == "" {
+	if cfg.TargetHostDSN == "" {
 		return nil, fmt.Errorf("no target host given")
 	}
 

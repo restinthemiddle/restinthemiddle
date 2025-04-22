@@ -11,12 +11,12 @@ import (
 
 // SourceConfig holds the raw core configuration
 type SourceConfig struct {
-	TargetHostDsn       string            `yaml:"targetHostDsn"`
-	ListenIp            string            `yaml:"listenIp"`
+	TargetHostDSN       string            `yaml:"targetHostDsn"`
+	ListenIP            string            `yaml:"listenIp"`
 	ListenPort          string            `yaml:"listenPort"`
 	Headers             map[string]string `yaml:"headers,omitempty"`
 	LoggingEnabled      bool              `yaml:"loggingEnabled"`
-	SetRequestId        bool              `yaml:"setRequestId"`
+	SetRequestID        bool              `yaml:"setRequestId"`
 	Exclude             string            `yaml:"exclude"`
 	LogPostBody         bool              `yaml:"logPostBody"`
 	LogResponseBody     bool              `yaml:"logResponseBody"`
@@ -27,11 +27,11 @@ type SourceConfig struct {
 // TranslatedConfig holds the compiled core configuration
 type TranslatedConfig struct {
 	TargetURL                 *url.URL
-	ListenIp                  string
+	ListenIP                  string
 	ListenPort                string
 	Headers                   map[string]string
 	LoggingEnabled            bool
-	SetRequestId              bool
+	SetRequestID              bool
 	ExcludeRegexp             *regexp.Regexp
 	LogPostBody               bool
 	LogResponseBody           bool
@@ -41,12 +41,12 @@ type TranslatedConfig struct {
 
 func (s *SourceConfig) NewTranslatedConfiguration() *TranslatedConfig {
 	return &TranslatedConfig{
-		TargetURL:                 getTargetURL(s.TargetHostDsn),
-		ListenIp:                  s.ListenIp,
+		TargetURL:                 getTargetURL(s.TargetHostDSN),
+		ListenIP:                  s.ListenIP,
 		ListenPort:                s.ListenPort,
 		Headers:                   s.Headers,
 		LoggingEnabled:            s.LoggingEnabled,
-		SetRequestId:              s.SetRequestId,
+		SetRequestID:              s.SetRequestID,
 		ExcludeRegexp:             getExcludeRegexp(s.Exclude),
 		LogPostBody:               s.LogPostBody,
 		LogResponseBody:           s.LogResponseBody,

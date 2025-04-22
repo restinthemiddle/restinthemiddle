@@ -41,7 +41,7 @@ func Run(c *config.TranslatedConfig, w Writer) {
 	proxy.ModifyResponse = logResponse
 
 	http.HandleFunc("/", handleRequest)
-	if err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIp, cfg.ListenPort), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIP, cfg.ListenPort), nil); err != nil {
 		log.Fatalf("%s", err.Error())
 	}
 }
@@ -52,10 +52,10 @@ func newSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 
-		if cfg.SetRequestId && req.Header.Get("X-Request-Id") == "" {
-			requestId := uuid.Must(uuid.NewRandom())
+		if cfg.SetRequestID && req.Header.Get("X-Request-Id") == "" {
+			requestID := uuid.Must(uuid.NewRandom())
 
-			req.Header.Set("X-Request-Id", requestId.String())
+			req.Header.Set("X-Request-Id", requestID.String())
 		}
 
 		if req.Header.Get("X-Forwarded-Host") == "" {

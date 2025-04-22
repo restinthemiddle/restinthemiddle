@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
-	defer logger.Sync()
+	defer logger.Sync() //nolint:errcheck
 
 	w := zapwriter.Writer{Logger: logger, Config: translatedConfig}
 
@@ -41,6 +41,7 @@ func Load() (*config.TranslatedConfig, error) {
 	var loggingEnabled, setRequestID bool
 	var exclude, excludePostBody, excludeResponseBody string
 	var logPostBody, logResponseBody bool
+	var readTimeout, writeTimeout, idleTimeout int
 
 	// Define flags
 	flag.StringSliceVar(&headers, "header", []string{}, "HTTP header to set. You may use this flag multiple times.")
@@ -54,6 +55,9 @@ func Load() (*config.TranslatedConfig, error) {
 	flag.BoolVar(&logResponseBody, "log-response-body", true, "Log response body")
 	flag.StringVar(&excludePostBody, "exclude-post-body", "", "Regex pattern to exclude from POST body logging")
 	flag.StringVar(&excludeResponseBody, "exclude-response-body", "", "Regex pattern to exclude from response body logging")
+	flag.IntVar(&readTimeout, "read-timeout", 5, "Read timeout in seconds")
+	flag.IntVar(&writeTimeout, "write-timeout", 10, "Write timeout in seconds")
+	flag.IntVar(&idleTimeout, "idle-timeout", 120, "Idle timeout in seconds")
 
 	// Define configuration defaults and bind environment variables in one go
 	defaults := map[string]interface{}{
@@ -68,6 +72,9 @@ func Load() (*config.TranslatedConfig, error) {
 		"logResponseBody":     true,
 		"excludePostBody":     "",
 		"excludeResponseBody": "",
+		"readTimeout":         5,
+		"writeTimeout":        10,
+		"idleTimeout":         120,
 	}
 
 	v := viper.New()
@@ -78,17 +85,20 @@ func Load() (*config.TranslatedConfig, error) {
 	}
 
 	// Bind environment variables with proper SCREAMING_SNAKE_CASE
-	v.BindEnv("targetHostDsn", "TARGET_HOST_DSN")
-	v.BindEnv("listenIp", "LISTEN_IP")
-	v.BindEnv("listenPort", "LISTEN_PORT")
-	v.BindEnv("headers", "HEADERS")
-	v.BindEnv("loggingEnabled", "LOGGING_ENABLED")
-	v.BindEnv("setRequestId", "SET_REQUEST_ID")
-	v.BindEnv("exclude", "EXCLUDE")
-	v.BindEnv("logPostBody", "LOG_POST_BODY")
-	v.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")
-	v.BindEnv("excludePostBody", "EXCLUDE_POST_BODY")
-	v.BindEnv("excludeResponseBody", "EXCLUDE_RESPONSE_BODY")
+	v.BindEnv("targetHostDsn", "TARGET_HOST_DSN")             //nolint:errcheck
+	v.BindEnv("listenIp", "LISTEN_IP")                        //nolint:errcheck
+	v.BindEnv("listenPort", "LISTEN_PORT")                    //nolint:errcheck
+	v.BindEnv("headers", "HEADERS")                           //nolint:errcheck
+	v.BindEnv("loggingEnabled", "LOGGING_ENABLED")            //nolint:errcheck
+	v.BindEnv("setRequestId", "SET_REQUEST_ID")               //nolint:errcheck
+	v.BindEnv("exclude", "EXCLUDE")                           //nolint:errcheck
+	v.BindEnv("logPostBody", "LOG_POST_BODY")                 //nolint:errcheck
+	v.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")         //nolint:errcheck
+	v.BindEnv("excludePostBody", "EXCLUDE_POST_BODY")         //nolint:errcheck
+	v.BindEnv("excludeResponseBody", "EXCLUDE_RESPONSE_BODY") //nolint:errcheck
+	v.BindEnv("readTimeout", "READ_TIMEOUT")                  //nolint:errcheck
+	v.BindEnv("writeTimeout", "WRITE_TIMEOUT")                //nolint:errcheck
+	v.BindEnv("idleTimeout", "IDLE_TIMEOUT")                  //nolint:errcheck
 
 	// Bind all flags to viper
 	if err := v.BindPFlags(flag.CommandLine); err != nil {
@@ -145,6 +155,15 @@ func Load() (*config.TranslatedConfig, error) {
 	if excludeResponseBody != "" {
 		cfg.ExcludeResponseBody = excludeResponseBody
 	}
+	if readTimeout != 5 {
+		cfg.ReadTimeout = readTimeout
+	}
+	if writeTimeout != 10 {
+		cfg.WriteTimeout = writeTimeout
+	}
+	if idleTimeout != 120 {
+		cfg.IdleTimeout = idleTimeout
+	}
 
 	// Process headers from command line
 	for _, item := range headers {
@@ -172,5 +191,10 @@ func Load() (*config.TranslatedConfig, error) {
 		fmt.Printf("Config File: %s\n", configFile)
 	}
 
-	return cfg.NewTranslatedConfiguration(), nil
+	translatedConfig, err := cfg.NewTranslatedConfiguration()
+	if err != nil {
+		return nil, fmt.Errorf("failed to translate configuration: %w", err)
+	}
+
+	return translatedConfig, nil
 }

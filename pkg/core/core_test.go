@@ -9,7 +9,7 @@ import (
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 )
 
-// MockHTTPServer ist eine Mock-Implementierung des HTTPServer-Interfaces
+// MockHTTPServer is a mock implementation of the HTTPServer interface
 type MockHTTPServer struct {
 	handler http.Handler
 }
@@ -19,7 +19,7 @@ func (s *MockHTTPServer) ListenAndServe(addr string, handler http.Handler) error
 	return nil
 }
 
-// MockWriter ist eine Mock-Implementierung des Writer-Interfaces
+// MockWriter is a mock implementation of the Writer interface
 type MockWriter struct {
 	lastResponse *http.Response
 }
@@ -53,6 +53,6 @@ func TestRun(t *testing.T) {
 
 	// Test
 	if mockServer.handler == nil {
-		t.Error("Handler wurde nicht gesetzt")
+		t.Error("Handler was not set")
 	}
 }

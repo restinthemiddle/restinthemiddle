@@ -15,12 +15,33 @@ func TestNewServer(t *testing.T) {
 		TargetURL: targetURL,
 	}
 
-	server := NewServer(cfg)
-	if server == nil {
-		t.Error("Server sollte nicht nil sein")
+	_, err := NewServer(cfg)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
-	if server.cfg != cfg {
-		t.Error("Konfiguration wurde nicht korrekt gesetzt")
+}
+
+func TestNewServerWithNilConfig(t *testing.T) {
+	server, err := NewServer(nil)
+	if err == nil {
+		t.Error("Expected error for nil configuration")
+	}
+	if server != nil {
+		t.Error("Server should be nil for nil configuration")
+	}
+}
+
+func TestNewServerWithNilTargetURL(t *testing.T) {
+	cfg := &config.TranslatedConfig{
+		TargetURL: nil,
+	}
+
+	server, err := NewServer(cfg)
+	if err == nil {
+		t.Error("Expected error for nil target URL")
+	}
+	if server != nil {
+		t.Error("Server should be nil for nil target URL")
 	}
 }
 
@@ -30,7 +51,10 @@ func TestServeHTTP(t *testing.T) {
 	cfg := &config.TranslatedConfig{
 		TargetURL: targetURL,
 	}
-	server := NewServer(cfg)
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
 	// Test Request
 	req := httptest.NewRequest("GET", "/", nil)
@@ -46,7 +70,7 @@ func TestServeHTTP(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("Erwarteter Status 200, got %d", w.Code)
+		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
 
@@ -55,7 +79,10 @@ func TestSetModifyResponse(t *testing.T) {
 	cfg := &config.TranslatedConfig{
 		TargetURL: targetURL,
 	}
-	server := NewServer(cfg)
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
 	modifyCalled := false
 	server.SetModifyResponse(func(resp *http.Response) error {
@@ -68,6 +95,6 @@ func TestSetModifyResponse(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	if !modifyCalled {
-		t.Error("ModifyResponse wurde nicht aufgerufen")
+		t.Error("ModifyResponse was not called")
 	}
 }

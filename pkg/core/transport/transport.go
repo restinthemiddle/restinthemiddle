@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -36,7 +37,11 @@ type ProfilingTransport struct {
 type ProfilingContextKey string
 
 // NewProfilingTransport creates a new profiling transport
-func NewProfilingTransport(cfg *config.TranslatedConfig) *ProfilingTransport {
+func NewProfilingTransport(cfg *config.TranslatedConfig) (*ProfilingTransport, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("configuration is nil")
+	}
+
 	transport := &ProfilingTransport{
 		dialer: &net.Dialer{
 			Timeout:   30 * time.Second,
@@ -50,7 +55,7 @@ func NewProfilingTransport(cfg *config.TranslatedConfig) *ProfilingTransport {
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
 
-	return transport
+	return transport, nil
 }
 
 // RoundTrip facilitates several timing measurements

@@ -16,7 +16,11 @@ FROM alpine:3.21 AS artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 
-RUN apk -U upgrade
+ENV TZ=UTC
+
+RUN apk -U upgrade \
+    && apk add --no-cache ca-certificates tzdata \
+    && rm -rf /var/cache/apk/*
 
 COPY --from=build-env /src/restinthemiddle /usr/bin/restinthemiddle
 

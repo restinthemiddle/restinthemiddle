@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"time"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -21,6 +22,9 @@ type SourceConfig struct {
 	LogResponseBody     bool              `yaml:"logResponseBody"`
 	ExcludePostBody     string            `yaml:"excludePostBody"`
 	ExcludeResponseBody string            `yaml:"excludeResponseBody"`
+	ReadTimeout         int               `yaml:"readTimeout"`
+	WriteTimeout        int               `yaml:"writeTimeout"`
+	IdleTimeout         int               `yaml:"idleTimeout"`
 }
 
 // TranslatedConfig holds the compiled core configuration
@@ -36,16 +40,33 @@ type TranslatedConfig struct {
 	LogResponseBody           bool
 	ExcludePostBodyRegexp     *regexp.Regexp
 	ExcludeResponseBodyRegexp *regexp.Regexp
+	ReadTimeout               time.Duration
+	WriteTimeout              time.Duration
+	IdleTimeout               time.Duration
 }
 
-func (s *SourceConfig) NewTranslatedConfiguration() *TranslatedConfig {
+func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 	if s.TargetHostDSN == "" {
-		return nil
+		return nil, fmt.Errorf("target host DSN is empty")
 	}
 
 	targetURL := getTargetURL(s.TargetHostDSN)
 	if targetURL == nil {
-		return nil
+		return nil, fmt.Errorf("invalid target host DSN: %s", s.TargetHostDSN)
+	}
+
+	// Set default timeouts if not specified
+	readTimeout := 5
+	if s.ReadTimeout > 0 {
+		readTimeout = s.ReadTimeout
+	}
+	writeTimeout := 10
+	if s.WriteTimeout > 0 {
+		writeTimeout = s.WriteTimeout
+	}
+	idleTimeout := 120
+	if s.IdleTimeout > 0 {
+		idleTimeout = s.IdleTimeout
 	}
 
 	return &TranslatedConfig{
@@ -60,7 +81,10 @@ func (s *SourceConfig) NewTranslatedConfiguration() *TranslatedConfig {
 		LogResponseBody:           s.LogResponseBody,
 		ExcludePostBodyRegexp:     getExcludeRegexp(s.ExcludePostBody),
 		ExcludeResponseBodyRegexp: getExcludeRegexp(s.ExcludeResponseBody),
-	}
+		ReadTimeout:               time.Duration(readTimeout) * time.Second,
+		WriteTimeout:              time.Duration(writeTimeout) * time.Second,
+		IdleTimeout:               time.Duration(idleTimeout) * time.Second,
+	}, nil
 }
 
 func getExcludeRegexp(exclude string) *regexp.Regexp {

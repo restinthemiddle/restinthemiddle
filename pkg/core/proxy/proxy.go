@@ -12,7 +12,7 @@ import (
 	"github.com/restinthemiddle/restinthemiddle/pkg/core/transport"
 )
 
-// ReverseProxy definiert das Interface für einen Reverse Proxy
+// ReverseProxy defines the interface for a reverse proxy
 type ReverseProxy interface {
 	ServeHTTP(http.ResponseWriter, *http.Request)
 	ModifyResponse(func(*http.Response) error)
@@ -25,11 +25,23 @@ type Server struct {
 }
 
 // NewServer creates a new reverse proxy server
-func NewServer(cfg *config.TranslatedConfig) *Server {
+func NewServer(cfg *config.TranslatedConfig) (*Server, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("configuration is nil")
+	}
+	if cfg.TargetURL == nil {
+		return nil, fmt.Errorf("target URL is nil")
+	}
+
+	proxy, err := newSingleHostReverseProxy(cfg.TargetURL, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create reverse proxy: %w", err)
+	}
+
 	return &Server{
 		cfg:   cfg,
-		proxy: newSingleHostReverseProxy(cfg.TargetURL, cfg),
-	}
+		proxy: proxy,
+	}, nil
 }
 
 // ServeHTTP handles incoming HTTP requests
@@ -42,7 +54,7 @@ func (s *Server) SetModifyResponse(f func(*http.Response) error) {
 	s.proxy.ModifyResponse(f)
 }
 
-// DefaultReverseProxy ist die Standard-Implementierung des ReverseProxy-Interfaces
+// DefaultReverseProxy is the default implementation of the ReverseProxy interface
 type DefaultReverseProxy struct {
 	*httputil.ReverseProxy
 }
@@ -51,7 +63,7 @@ func (p *DefaultReverseProxy) ModifyResponse(f func(*http.Response) error) {
 	p.ReverseProxy.ModifyResponse = f
 }
 
-func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) ReverseProxy {
+func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (ReverseProxy, error) {
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
@@ -114,13 +126,17 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) Re
 		}
 	}
 
-	profilingTransport := transport.NewProfilingTransport(cfg)
+	profilingTransport, err := transport.NewProfilingTransport(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create profiling transport: %w", err)
+	}
+
 	return &DefaultReverseProxy{
 		ReverseProxy: &httputil.ReverseProxy{
 			Director:  director,
 			Transport: profilingTransport,
 		},
-	}
+	}, nil
 }
 
 func singleJoiningSlash(a, b string) string {

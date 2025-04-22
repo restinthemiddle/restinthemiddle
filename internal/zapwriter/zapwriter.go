@@ -112,7 +112,7 @@ func (w Writer) LogResponse(response *http.Response) (err error) {
 	responseBodyString := ""
 	if w.Config.LogResponseBody {
 		func() {
-			if w.Config.ExcludeResponseBodyRegexp.String() != "" && w.Config.ExcludeResponseBodyRegexp.MatchString(response.Request.URL.Path) {
+			if w.Config.ExcludeResponseBodyRegexp != nil && w.Config.ExcludeResponseBodyRegexp.String() != "" && w.Config.ExcludeResponseBodyRegexp.MatchString(response.Request.URL.Path) {
 				return
 			}
 

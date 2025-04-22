@@ -14,19 +14,23 @@ var wrt Writer
 var proxyServer *proxy.Server
 var server HTTPServer
 
-// Run startet den Proxy-Server
+// Run starts the proxy server
 func Run(c *config.TranslatedConfig, w Writer, s HTTPServer) {
 	cfg = c
 	wrt = w
 	server = s
 
-	proxyServer = proxy.NewServer(cfg)
+	var err error
+	proxyServer, err = proxy.NewServer(cfg)
+	if err != nil {
+		log.Fatalf("Failed to create proxy server: %v", err)
+	}
 	proxyServer.SetModifyResponse(logResponse)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleRequest)
 
-	// Setze den Handler im Server
+	// Set the handler in the server
 	if err := server.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIP, cfg.ListenPort), mux); err != nil {
 		log.Fatalf("%v", err)
 	}

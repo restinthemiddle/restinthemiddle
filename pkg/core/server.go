@@ -1,16 +1,25 @@
 package core
 
-import "net/http"
+import (
+	"net/http"
+)
 
-// HTTPServer definiert das Interface für einen HTTP-Server
+// HTTPServer defines the interface for an HTTP server
 type HTTPServer interface {
 	ListenAndServe(addr string, handler http.Handler) error
 }
 
-// DefaultHTTPServer ist die Standard-Implementierung des HTTPServer-Interfaces
+// DefaultHTTPServer is the default implementation of the HTTPServer interface
 type DefaultHTTPServer struct{}
 
-// ListenAndServe implementiert das HTTPServer-Interface
+// ListenAndServe implements the HTTPServer interface
 func (s *DefaultHTTPServer) ListenAndServe(addr string, handler http.Handler) error {
-	return http.ListenAndServe(addr, handler)
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      handler,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
+		IdleTimeout:  cfg.IdleTimeout,
+	}
+	return server.ListenAndServe()
 }

@@ -2,7 +2,6 @@ package core_config
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"regexp"
 
@@ -40,8 +39,17 @@ type TranslatedConfig struct {
 }
 
 func (s *SourceConfig) NewTranslatedConfiguration() *TranslatedConfig {
+	if s.TargetHostDSN == "" {
+		return nil
+	}
+
+	targetURL := getTargetURL(s.TargetHostDSN)
+	if targetURL == nil {
+		return nil
+	}
+
 	return &TranslatedConfig{
-		TargetURL:                 getTargetURL(s.TargetHostDSN),
+		TargetURL:                 targetURL,
 		ListenIP:                  s.ListenIP,
 		ListenPort:                s.ListenPort,
 		Headers:                   s.Headers,
@@ -56,20 +64,21 @@ func (s *SourceConfig) NewTranslatedConfiguration() *TranslatedConfig {
 }
 
 func getExcludeRegexp(exclude string) *regexp.Regexp {
+	if exclude == "" {
+		return nil
+	}
 	regex, err := regexp.Compile(exclude)
 	if err != nil {
-		log.Fatalf("%s", err.Error())
+		return nil
 	}
-
 	return regex
 }
 
 func getTargetURL(targetHostDsn string) *url.URL {
 	url, err := url.Parse(targetHostDsn)
 	if err != nil {
-		log.Fatalf("%s", err.Error())
+		return nil
 	}
-
 	return url
 }
 

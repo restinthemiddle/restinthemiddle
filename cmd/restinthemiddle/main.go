@@ -24,7 +24,7 @@ func main() {
 
 	logger, err := zap.NewProduction()
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("Failed to create logger: %v", err)
 	}
 	defer logger.Sync()
 
@@ -32,7 +32,7 @@ func main() {
 
 	log.Println("restinthemiddle started.")
 
-	core.Run(translatedConfig, w)
+	core.Run(translatedConfig, w, &core.DefaultHTTPServer{})
 }
 
 func Load() (*config.TranslatedConfig, error) {

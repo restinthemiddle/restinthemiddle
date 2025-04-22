@@ -12,10 +12,16 @@ import (
 	"github.com/restinthemiddle/restinthemiddle/pkg/core/transport"
 )
 
+// ReverseProxy definiert das Interface für einen Reverse Proxy
+type ReverseProxy interface {
+	ServeHTTP(http.ResponseWriter, *http.Request)
+	ModifyResponse(func(*http.Response) error)
+}
+
 // Server represents a reverse proxy server
 type Server struct {
 	cfg   *config.TranslatedConfig
-	proxy *httputil.ReverseProxy
+	proxy ReverseProxy
 }
 
 // NewServer creates a new reverse proxy server
@@ -33,10 +39,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // SetModifyResponse sets the response modifier function
 func (s *Server) SetModifyResponse(f func(*http.Response) error) {
-	s.proxy.ModifyResponse = f
+	s.proxy.ModifyResponse(f)
 }
 
-func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) *httputil.ReverseProxy {
+// DefaultReverseProxy ist die Standard-Implementierung des ReverseProxy-Interfaces
+type DefaultReverseProxy struct {
+	*httputil.ReverseProxy
+}
+
+func (p *DefaultReverseProxy) ModifyResponse(f func(*http.Response) error) {
+	p.ReverseProxy.ModifyResponse = f
+}
+
+func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) ReverseProxy {
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
@@ -100,7 +115,12 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) *h
 	}
 
 	profilingTransport := transport.NewProfilingTransport(cfg)
-	return &httputil.ReverseProxy{Director: director, Transport: profilingTransport}
+	return &DefaultReverseProxy{
+		ReverseProxy: &httputil.ReverseProxy{
+			Director:  director,
+			Transport: profilingTransport,
+		},
+	}
 }
 
 func singleJoiningSlash(a, b string) string {

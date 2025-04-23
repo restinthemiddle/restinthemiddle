@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - v2
+      - refactor-extremo
   pull_request:
 
 permissions:

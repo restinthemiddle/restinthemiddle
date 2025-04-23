@@ -9,7 +9,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-// SourceConfig holds the raw core configuration
+// SourceConfig holds the raw core configuration.
 type SourceConfig struct {
 	TargetHostDSN       string            `yaml:"targetHostDsn"`
 	ListenIP            string            `yaml:"listenIp"`
@@ -27,7 +27,7 @@ type SourceConfig struct {
 	IdleTimeout         int               `yaml:"idleTimeout"`
 }
 
-// TranslatedConfig holds the compiled core configuration
+// TranslatedConfig holds the compiled core configuration.
 type TranslatedConfig struct {
 	TargetURL                 *url.URL
 	ListenIP                  string
@@ -55,7 +55,7 @@ func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 		return nil, fmt.Errorf("invalid target host DSN: %s", s.TargetHostDSN)
 	}
 
-	// Set default timeouts if not specified
+	// Set default timeouts if not specified.
 	readTimeout := 5
 	if s.ReadTimeout > 0 {
 		readTimeout = s.ReadTimeout
@@ -106,7 +106,7 @@ func getTargetURL(targetHostDsn string) *url.URL {
 	return url
 }
 
-// PrintConfig logs the env variables required for a reverse proxy
+// PrintConfig logs the env variables required for a reverse proxy.
 func (s *SourceConfig) PrintConfig() {
 	fmt.Println("YAML configuration:")
 	yamlString, _ := yaml.Marshal(s)

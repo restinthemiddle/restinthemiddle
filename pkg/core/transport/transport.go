@@ -15,7 +15,7 @@ import (
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 )
 
-// HTTPTiming contains several connection related time metrics
+// HTTPTiming contains several connection related time metrics.
 type HTTPTiming struct {
 	GetConn              time.Time
 	GotConn              time.Time
@@ -24,7 +24,7 @@ type HTTPTiming struct {
 	TLSHandshakeDone     time.Time
 }
 
-// The ProfilingTransport is a http.Transport with a http.RoundTripper
+// The ProfilingTransport is a http.Transport with a http.RoundTripper.
 type ProfilingTransport struct {
 	roundTripper    http.RoundTripper
 	dialer          *net.Dialer
@@ -33,10 +33,10 @@ type ProfilingTransport struct {
 	cfg             *config.TranslatedConfig
 }
 
-// ProfilingContextKey is a special string type
+// ProfilingContextKey is a special string type.
 type ProfilingContextKey string
 
-// NewProfilingTransport creates a new profiling transport
+// NewProfilingTransport creates a new profiling transport.
 func NewProfilingTransport(cfg *config.TranslatedConfig) (*ProfilingTransport, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("configuration is nil")
@@ -58,7 +58,7 @@ func NewProfilingTransport(cfg *config.TranslatedConfig) (*ProfilingTransport, e
 	return transport, nil
 }
 
-// RoundTrip facilitates several timing measurements
+// RoundTrip facilitates several timing measurements.
 func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	requestBodyString := ""
 

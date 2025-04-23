@@ -14,7 +14,7 @@ var wrt Writer
 var proxyServer *proxy.Server
 var server HTTPServer
 
-// Run starts the proxy server
+// Run starts the proxy server.
 func Run(c *config.TranslatedConfig, w Writer, s HTTPServer) {
 	cfg = c
 	wrt = w

@@ -4,15 +4,15 @@ import (
 	"net/http"
 )
 
-// HTTPServer defines the interface for an HTTP server
+// HTTPServer defines the interface for an HTTP server.
 type HTTPServer interface {
 	ListenAndServe(addr string, handler http.Handler) error
 }
 
-// DefaultHTTPServer is the default implementation of the HTTPServer interface
+// DefaultHTTPServer is the default implementation of the HTTPServer interface.
 type DefaultHTTPServer struct{}
 
-// ListenAndServe implements the HTTPServer interface
+// ListenAndServe implements the HTTPServer interface.
 func (s *DefaultHTTPServer) ListenAndServe(addr string, handler http.Handler) error {
 	server := &http.Server{
 		Addr:         addr,

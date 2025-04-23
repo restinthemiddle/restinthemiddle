@@ -9,7 +9,7 @@ import (
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 )
 
-// MockHTTPServer is a mock implementation of the HTTPServer interface
+// MockHTTPServer is a mock implementation of the HTTPServer interface.
 type MockHTTPServer struct {
 	handler http.Handler
 }
@@ -19,7 +19,7 @@ func (s *MockHTTPServer) ListenAndServe(addr string, handler http.Handler) error
 	return nil
 }
 
-// MockWriter is a mock implementation of the Writer interface
+// MockWriter is a mock implementation of the Writer interface.
 type MockWriter struct {
 	lastResponse *http.Response
 }

@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// HTTPTiming contains several connection related time metrics
+// HTTPTiming contains several connection related time metrics.
 type HTTPTiming struct {
 	GetConn              time.Time
 	GotConn              time.Time
@@ -31,7 +31,7 @@ type HTTPTiming struct {
 	TLSHandshakeDuration time.Duration
 }
 
-// MarshalLogObject is used for the type safe JSON serialization of the HTTPTiming struct
+// MarshalLogObject is used for the type safe JSON serialization of the HTTPTiming struct.
 func (t HTTPTiming) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddTime("get_conn", t.GetConn)
 	enc.AddTime("got_conn", t.GotConn)
@@ -49,7 +49,7 @@ func (t HTTPTiming) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
-// NewHTTPTimingFromCore yields a new, partially hydrated HTTPTiming struct from the eponymous core struct
+// NewHTTPTimingFromCore yields a new, partially hydrated HTTPTiming struct from the eponymous core struct.
 func NewHTTPTimingFromCore(ct *transport.HTTPTiming) (HTTPTiming, error) {
 	t := HTTPTiming{
 		GetConn:              ct.GetConn,
@@ -64,7 +64,7 @@ func NewHTTPTimingFromCore(ct *transport.HTTPTiming) (HTTPTiming, error) {
 	return t, nil
 }
 
-// Writer is being used to print out logs via the zap library
+// Writer is being used to print out logs via the zap library.
 type Writer struct {
 	Logger *zap.Logger
 	Config *config.TranslatedConfig

@@ -12,19 +12,19 @@ import (
 	"github.com/restinthemiddle/restinthemiddle/pkg/core/transport"
 )
 
-// ReverseProxy defines the interface for a reverse proxy
+// ReverseProxy defines the interface for a reverse proxy.
 type ReverseProxy interface {
 	ServeHTTP(http.ResponseWriter, *http.Request)
 	ModifyResponse(func(*http.Response) error)
 }
 
-// Server represents a reverse proxy server
+// Server represents a reverse proxy server.
 type Server struct {
 	cfg   *config.TranslatedConfig
 	proxy ReverseProxy
 }
 
-// NewServer creates a new reverse proxy server
+// NewServer creates a new reverse proxy server.
 func NewServer(cfg *config.TranslatedConfig) (*Server, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("configuration is nil")
@@ -44,17 +44,17 @@ func NewServer(cfg *config.TranslatedConfig) (*Server, error) {
 	}, nil
 }
 
-// ServeHTTP handles incoming HTTP requests
+// ServeHTTP handles incoming HTTP requests.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.proxy.ServeHTTP(w, r)
 }
 
-// SetModifyResponse sets the response modifier function
+// SetModifyResponse sets the response modifier function.
 func (s *Server) SetModifyResponse(f func(*http.Response) error) {
 	s.proxy.ModifyResponse(f)
 }
 
-// DefaultReverseProxy is the default implementation of the ReverseProxy interface
+// DefaultReverseProxy is the default implementation of the ReverseProxy interface.
 type DefaultReverseProxy struct {
 	*httputil.ReverseProxy
 }
@@ -112,11 +112,11 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (R
 
 		password, passwordIsSet := target.User.Password()
 		if passwordIsSet {
-			// Setting HTTP Basic Auth overwrites the current "Authorization" header(s)
+			// Setting HTTP Basic Auth overwrites the current "Authorization" header(s).
 			req.SetBasicAuth(target.User.Username(), password)
 
 			if he != "" {
-				// Merge Authorization header(s)
+				// Merge Authorization header(s).
 				req.Header.Set("Authorization", fmt.Sprintf("%s, %s", req.Header.Get("Authorization"), he))
 			}
 		}

@@ -2,7 +2,7 @@ name: Go Tests
 on:
   push:
     branches:
-      - main
+      - refactor-v2
   pull_request:
 
 permissions:

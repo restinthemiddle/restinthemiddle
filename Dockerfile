@@ -1,4 +1,4 @@
-FROM golang:1.24.2-alpine AS build-env
+FROM golang:1.24.4-alpine AS build-env
 
 WORKDIR /src
 
@@ -12,7 +12,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o restinthemiddle
 
-FROM alpine:3.21 AS artifact
+FROM alpine:3.22 AS artifact
 
 LABEL org.opencontainers.image.authors="Jens Schulze"
 

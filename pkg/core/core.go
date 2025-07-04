@@ -45,7 +45,7 @@ func logResponse(response *http.Response) (err error) {
 		return nil
 	}
 
-	if cfg.ExcludeRegexp != nil && cfg.ExcludeRegexp.String() != "" && cfg.ExcludeRegexp.MatchString(response.Request.URL.Path) {
+	if cfg.ExcludeRegexp != nil && cfg.ExcludeRegexp.MatchString(response.Request.URL.Path) {
 		return nil
 	}
 

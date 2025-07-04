@@ -64,7 +64,7 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 
 	if r.ContentLength > 0 {
 		func() {
-			if transport.cfg.ExcludePostBodyRegexp.String() != "" && transport.cfg.ExcludePostBodyRegexp.MatchString(r.URL.Path) {
+			if transport.cfg.ExcludePostBodyRegexp != nil && transport.cfg.ExcludePostBodyRegexp.MatchString(r.URL.Path) {
 				return
 			}
 

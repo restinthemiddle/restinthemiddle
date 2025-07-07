@@ -1,10 +1,11 @@
 # Restinthemiddle v2
 
 ![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle)
+[![codecov](https://codecov.io/gh/restinthemiddle/restinthemiddle/branch/main/graph/badge.svg)](https://codecov.io/gh/restinthemiddle/restinthemiddle)
 ![v1](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle?filter=1.*)
 ![v2](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle?filter=2.*)
-![v2 size_amd64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2.0.0-alpha.21?arch=amd64)
-![v2 size_arm64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2.0.0-alpha.21?arch=arm64)
+![v2 size_amd64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2.0.0-alpha.24?arch=amd64)
+![v2 size_arm64](https://img.shields.io/docker/image-size/jdschulze/restinthemiddle/2.0.0-alpha.24?arch=arm64)
 
 This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
 
@@ -18,7 +19,7 @@ Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags)
 docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the `latest` tag is always the `HEAD` of the `v2` branch but this can change without notice anytime.
+Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the `latest` tag is always the `HEAD` of the `refactor-v2` branch but this can change without notice anytime.
 
 ### Build the Docker image yourself
 

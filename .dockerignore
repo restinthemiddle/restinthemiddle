@@ -2,6 +2,7 @@
 .github
 .gitignore
 bin
+tests/integration/config.yaml
 Dockerfile
 License
 Makefile

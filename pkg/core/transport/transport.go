@@ -10,9 +10,18 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"sync"
 	"time"
 
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
+)
+
+// contextKey is a custom type for context keys to avoid collisions.
+type contextKey string
+
+// Context keys for storing HTTP request data.
+const (
+	httpRequestKey contextKey = "http-request"
 )
 
 // HTTPTiming contains several connection related time metrics.
@@ -24,13 +33,17 @@ type HTTPTiming struct {
 	TLSHandshakeDone     time.Time
 }
 
+// TCPConnectionTiming holds TCP connection establishment timing (before TLS).
+type TCPConnectionTiming struct {
+	Start       time.Time // TCP dial start
+	Established time.Time // TCP connection established (before TLS handshake)
+}
+
 // The ProfilingTransport is a http.Transport with a http.RoundTripper.
 type ProfilingTransport struct {
-	roundTripper    http.RoundTripper
-	dialer          *net.Dialer
-	connectionStart time.Time
-	connectionEnd   time.Time
-	cfg             *config.TranslatedConfig
+	roundTripper      http.RoundTripper
+	cfg               *config.TranslatedConfig
+	connectionTimings sync.Map // map[*http.Request]*TCPConnectionTiming
 }
 
 // ProfilingContextKey is a special string type.
@@ -43,18 +56,44 @@ func NewProfilingTransport(cfg *config.TranslatedConfig) (*ProfilingTransport, e
 	}
 
 	transport := &ProfilingTransport{
-		dialer: &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		},
 		cfg: cfg,
 	}
-	transport.roundTripper = &http.Transport{
+
+	// Create a custom transport with our custom dialer
+	httpTransport := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
-		Dial:                transport.dial,
 		TLSHandshakeTimeout: 10 * time.Second,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// Get the original request from context to store timing info
+			if req := ctx.Value(httpRequestKey); req != nil {
+				if httpReq, ok := req.(*http.Request); ok {
+					connectionStart := time.Now()
+					transport.connectionTimings.Store(httpReq, &TCPConnectionTiming{Start: connectionStart})
+				}
+			}
+
+			dialer := &net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+			conn, err := dialer.DialContext(ctx, network, addr)
+
+			// Store connection end time
+			if req := ctx.Value(httpRequestKey); req != nil {
+				if httpReq, ok := req.(*http.Request); ok {
+					if timing, exists := transport.connectionTimings.Load(httpReq); exists {
+						if connTiming, ok := timing.(*TCPConnectionTiming); ok {
+							connTiming.Established = time.Now()
+						}
+					}
+				}
+			}
+
+			return conn, err
+		},
 	}
 
+	transport.roundTripper = httpTransport
 	return transport, nil
 }
 
@@ -103,21 +142,41 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 
 	ctxTrace := httptrace.WithClientTrace(ctxRoundTripStart, trace)
 
-	response, err := transport.roundTripper.RoundTrip(r.WithContext(ctxTrace))
+	// Add the request to the context so our DialContext can access it
+	ctxWithRequest := context.WithValue(ctxTrace, httpRequestKey, r)
 
-	ctxConnectionStart := context.WithValue(response.Request.Context(), ProfilingContextKey("connectionStart"), transport.connectionStart)
-	ctxConnectionEnd := context.WithValue(ctxConnectionStart, ProfilingContextKey("connectionEnd"), transport.connectionEnd)
+	response, err := transport.roundTripper.RoundTrip(r.WithContext(ctxWithRequest))
+
+	// Get connection timing from our map
+	var connectionStart, connectionEnd time.Time
+	if timing, exists := transport.connectionTimings.Load(r); exists {
+		if connTiming, ok := timing.(*TCPConnectionTiming); ok {
+			connectionStart = connTiming.Start
+			connectionEnd = connTiming.Established
+		}
+		// Clean up the timing info to prevent memory leaks
+		transport.connectionTimings.Delete(r)
+	}
+
+	// Set timing context keys regardless of error status
+	// We need to handle the case where response might be nil on error
+	var ctx context.Context
+	if response != nil && response.Request != nil {
+		ctx = response.Request.Context()
+	} else {
+		// Use the original request context as fallback
+		ctx = ctxWithRequest
+	}
+
+	ctxConnectionStart := context.WithValue(ctx, ProfilingContextKey("tcpConnectionStart"), connectionStart)
+	ctxConnectionEnd := context.WithValue(ctxConnectionStart, ProfilingContextKey("tcpConnectionEstablished"), connectionEnd)
 	ctxRoundTripEnd := context.WithValue(ctxConnectionEnd, ProfilingContextKey("roundTripEnd"), time.Now())
 	ctxTiming := context.WithValue(ctxRoundTripEnd, ProfilingContextKey("timing"), timing)
 
-	response.Request = response.Request.WithContext(ctxTiming)
+	// Update the request context if we have a valid response
+	if response != nil && response.Request != nil {
+		response.Request = response.Request.WithContext(ctxTiming)
+	}
 
 	return response, err
-}
-
-func (transport *ProfilingTransport) dial(network, addr string) (net.Conn, error) {
-	transport.connectionStart = time.Now()
-	connections, err := transport.dialer.Dial(network, addr)
-	transport.connectionEnd = time.Now()
-	return connections, err
 }

@@ -121,8 +121,9 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (R
 			}
 		}
 
-		for key, value := range req.Header {
-			req.Header.Set(key, value[0])
+		// Add custom headers from configuration
+		for key, value := range cfg.Headers {
+			req.Header.Set(key, value)
 		}
 	}
 

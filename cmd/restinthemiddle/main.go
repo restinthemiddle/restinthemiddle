@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -16,109 +17,119 @@ import (
 	"golang.org/x/text/language"
 )
 
-func main() {
-	translatedConfig, err := Load()
+// Default configuration values.
+const (
+	defaultTargetHostDSN       = ""
+	defaultListenIP            = "0.0.0.0"
+	defaultListenPort          = "8000"
+	defaultLoggingEnabled      = true
+	defaultSetRequestID        = false
+	defaultExclude             = ""
+	defaultLogPostBody         = true
+	defaultLogResponseBody     = true
+	defaultExcludePostBody     = ""
+	defaultExcludeResponseBody = ""
+	defaultReadTimeout         = 5
+	defaultWriteTimeout        = 10
+	defaultIdleTimeout         = 120
+)
+
+// App represents the application with configurable dependencies.
+type App struct {
+	ConfigLoader  ConfigLoader
+	LoggerFactory LoggerFactory
+	Writer        io.Writer
+	Args          []string
+}
+
+// ConfigLoader defines the interface for loading configuration.
+type ConfigLoader interface {
+	Load(args []string) (*config.TranslatedConfig, error)
+}
+
+// LoggerFactory defines the interface for creating loggers.
+type LoggerFactory interface {
+	CreateLogger() (*zap.Logger, error)
+}
+
+// DefaultConfigLoader is the default implementation of ConfigLoader.
+type DefaultConfigLoader struct{}
+
+// DefaultLoggerFactory is the default implementation of LoggerFactory.
+type DefaultLoggerFactory struct{}
+
+// NewApp creates a new App with default dependencies.
+func NewApp() *App {
+	return &App{
+		ConfigLoader:  &DefaultConfigLoader{},
+		LoggerFactory: &DefaultLoggerFactory{},
+		Writer:        os.Stdout,
+		Args:          os.Args,
+	}
+}
+
+// Run executes the main application logic.
+func (a *App) Run() error {
+	translatedConfig, err := a.ConfigLoader.Load(a.Args)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	logger, err := zap.NewProduction()
+	logger, err := a.LoggerFactory.CreateLogger()
 	if err != nil {
-		log.Fatalf("Failed to create logger: %v", err)
+		return fmt.Errorf("failed to create logger: %w", err)
 	}
 	defer logger.Sync() //nolint:errcheck
 
 	w := zapwriter.Writer{Logger: logger, Config: translatedConfig}
 
-	log.Println("restinthemiddle started.")
+	fmt.Fprintln(a.Writer, "restinthemiddle started.")
 
 	core.Run(translatedConfig, w, &core.DefaultHTTPServer{})
+	return nil
 }
 
-func Load() (*config.TranslatedConfig, error) {
-	var headers []string
-	var targetHostDSN, listenIP, listenPort string
-	var loggingEnabled, setRequestID bool
-	var exclude, excludePostBody, excludeResponseBody string
-	var logPostBody, logResponseBody bool
-	var readTimeout, writeTimeout, idleTimeout int
+// CreateLogger creates a production logger with caller disabled.
+func (f *DefaultLoggerFactory) CreateLogger() (*zap.Logger, error) {
+	zapConfig := zap.NewProductionConfig()
+	zapConfig.DisableCaller = true
+	return zapConfig.Build()
+}
 
-	// Define flags
-	flag.StringSliceVar(&headers, "header", []string{}, "HTTP header to set. You may use this flag multiple times.")
-	flag.StringVar(&targetHostDSN, "target-host-dsn", "", "Target host DSN to proxy requests to")
-	flag.StringVar(&listenIP, "listen-ip", "0.0.0.0", "IP address to listen on")
-	flag.StringVar(&listenPort, "listen-port", "8000", "Port to listen on")
-	flag.BoolVar(&loggingEnabled, "logging-enabled", true, "Enable logging")
-	flag.BoolVar(&setRequestID, "set-request-id", false, "Set request ID")
-	flag.StringVar(&exclude, "exclude", "", "Regex pattern to exclude from logging")
-	flag.BoolVar(&logPostBody, "log-post-body", true, "Log POST request body")
-	flag.BoolVar(&logResponseBody, "log-response-body", true, "Log response body")
-	flag.StringVar(&excludePostBody, "exclude-post-body", "", "Regex pattern to exclude from POST body logging")
-	flag.StringVar(&excludeResponseBody, "exclude-response-body", "", "Regex pattern to exclude from response body logging")
-	flag.IntVar(&readTimeout, "read-timeout", 5, "Read timeout in seconds")
-	flag.IntVar(&writeTimeout, "write-timeout", 10, "Write timeout in seconds")
-	flag.IntVar(&idleTimeout, "idle-timeout", 120, "Idle timeout in seconds")
+// Load loads configuration from flags, environment variables, and config files.
+func (l *DefaultConfigLoader) Load(args []string) (*config.TranslatedConfig, error) {
+	return LoadConfig(args)
+}
 
-	// Define configuration defaults and bind environment variables in one go
-	defaults := map[string]interface{}{
-		"targetHostDsn":       "",
-		"listenIp":            "0.0.0.0",
-		"listenPort":          "8000",
-		"headers":             make(map[string]string),
-		"loggingEnabled":      true,
-		"setRequestId":        false,
-		"exclude":             "",
-		"logPostBody":         true,
-		"logResponseBody":     true,
-		"excludePostBody":     "",
-		"excludeResponseBody": "",
-		"readTimeout":         5,
-		"writeTimeout":        10,
-		"idleTimeout":         120,
+func main() {
+	app := NewApp()
+	if err := app.Run(); err != nil {
+		log.Fatalf("Application failed: %v", err)
 	}
+}
+
+// LoadConfig loads configuration from various sources.
+func LoadConfig(args []string) (*config.TranslatedConfig, error) {
+	flagVars := setupFlags()
 
 	v := viper.New()
-
-	// Set defaults and bind environment variables
-	for key, value := range defaults {
-		v.SetDefault(key, value)
-	}
-
-	// Bind environment variables with proper SCREAMING_SNAKE_CASE
-	v.BindEnv("targetHostDsn", "TARGET_HOST_DSN")             //nolint:errcheck
-	v.BindEnv("listenIp", "LISTEN_IP")                        //nolint:errcheck
-	v.BindEnv("listenPort", "LISTEN_PORT")                    //nolint:errcheck
-	v.BindEnv("headers", "HEADERS")                           //nolint:errcheck
-	v.BindEnv("loggingEnabled", "LOGGING_ENABLED")            //nolint:errcheck
-	v.BindEnv("setRequestId", "SET_REQUEST_ID")               //nolint:errcheck
-	v.BindEnv("exclude", "EXCLUDE")                           //nolint:errcheck
-	v.BindEnv("logPostBody", "LOG_POST_BODY")                 //nolint:errcheck
-	v.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")         //nolint:errcheck
-	v.BindEnv("excludePostBody", "EXCLUDE_POST_BODY")         //nolint:errcheck
-	v.BindEnv("excludeResponseBody", "EXCLUDE_RESPONSE_BODY") //nolint:errcheck
-	v.BindEnv("readTimeout", "READ_TIMEOUT")                  //nolint:errcheck
-	v.BindEnv("writeTimeout", "WRITE_TIMEOUT")                //nolint:errcheck
-	v.BindEnv("idleTimeout", "IDLE_TIMEOUT")                  //nolint:errcheck
+	setupViperDefaults(v)
+	setupViperEnvBindings(v)
 
 	// Bind all flags to viper
 	if err := v.BindPFlags(flag.CommandLine); err != nil {
 		return nil, fmt.Errorf("failed to bind flags: %w", err)
 	}
 
-	flag.Parse()
-
-	// Set config name and paths
-	v.SetConfigName("config")
-	v.SetConfigType("yaml")
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home directory: %w", err)
+	// Parse arguments
+	if err := flag.CommandLine.Parse(args[1:]); err != nil {
+		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	v.AddConfigPath("/etc/restinthemiddle")
-	v.AddConfigPath(homeDir + "/.restinthemiddle")
-	v.AddConfigPath(".")
+	// Setup config paths and read config file
+	if err := setupConfigPaths(v); err != nil {
+		return nil, err
+	}
 
 	// Read config file
 	if err := v.ReadInConfig(); err != nil {
@@ -132,56 +143,13 @@ func Load() (*config.TranslatedConfig, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Update config with flag values if they are set
-	if targetHostDSN != "" {
-		cfg.TargetHostDSN = targetHostDSN
-	}
-	if listenIP != "0.0.0.0" {
-		cfg.ListenIP = listenIP
-	}
-	if listenPort != "8000" {
-		cfg.ListenPort = listenPort
-	}
-	cfg.LoggingEnabled = loggingEnabled
-	cfg.SetRequestID = setRequestID
-	if exclude != "" {
-		cfg.Exclude = exclude
-	}
-	cfg.LogPostBody = logPostBody
-	cfg.LogResponseBody = logResponseBody
-	if excludePostBody != "" {
-		cfg.ExcludePostBody = excludePostBody
-	}
-	if excludeResponseBody != "" {
-		cfg.ExcludeResponseBody = excludeResponseBody
-	}
-	if readTimeout != 5 {
-		cfg.ReadTimeout = readTimeout
-	}
-	if writeTimeout != 10 {
-		cfg.WriteTimeout = writeTimeout
-	}
-	if idleTimeout != 120 {
-		cfg.IdleTimeout = idleTimeout
-	}
+	// Update config with flag values
+	updateConfigFromFlags(&cfg, flagVars)
 
-	// Process headers from command line
-	for _, item := range headers {
-		k, v, found := strings.Cut(item, ":")
-		if found {
-			cfg.Headers[k] = v
-		}
-	}
+	// Process headers
+	processHeaders(&cfg, flagVars.headers)
 
-	// Process header cases
-	titleCaser := cases.Title(language.AmericanEnglish)
-	headersProcessed := make(map[string]string, len(cfg.Headers))
-	for k, v := range cfg.Headers {
-		headersProcessed[titleCaser.String(strings.ToLower(k))] = v
-	}
-	cfg.Headers = headersProcessed
-
-	if cfg.TargetHostDSN == "" {
+	if cfg.TargetHostDSN == defaultTargetHostDSN {
 		return nil, fmt.Errorf("no target host given")
 	}
 
@@ -197,4 +165,159 @@ func Load() (*config.TranslatedConfig, error) {
 	}
 
 	return translatedConfig, nil
+}
+
+// FlagVars holds all flag variables.
+type FlagVars struct {
+	headers             []string
+	targetHostDSN       string
+	listenIP            string
+	listenPort          string
+	loggingEnabled      bool
+	setRequestID        bool
+	exclude             string
+	excludePostBody     string
+	excludeResponseBody string
+	logPostBody         bool
+	logResponseBody     bool
+	readTimeout         int
+	writeTimeout        int
+	idleTimeout         int
+}
+
+// setupFlags initializes all command line flags.
+func setupFlags() *FlagVars {
+	flagVars := &FlagVars{}
+
+	flag.StringSliceVar(&flagVars.headers, "header", []string{}, "HTTP header to set. You may use this flag multiple times.")
+	flag.StringVar(&flagVars.targetHostDSN, "target-host-dsn", defaultTargetHostDSN, "Target host DSN to proxy requests to")
+	flag.StringVar(&flagVars.listenIP, "listen-ip", defaultListenIP, "IP address to listen on")
+	flag.StringVar(&flagVars.listenPort, "listen-port", defaultListenPort, "Port to listen on")
+	flag.BoolVar(&flagVars.loggingEnabled, "logging-enabled", defaultLoggingEnabled, "Enable logging")
+	flag.BoolVar(&flagVars.setRequestID, "set-request-id", defaultSetRequestID, "Set request ID")
+	flag.StringVar(&flagVars.exclude, "exclude", defaultExclude, "Regex pattern to exclude from logging")
+	flag.BoolVar(&flagVars.logPostBody, "log-post-body", defaultLogPostBody, "Log POST request body")
+	flag.BoolVar(&flagVars.logResponseBody, "log-response-body", defaultLogResponseBody, "Log response body")
+	flag.StringVar(&flagVars.excludePostBody, "exclude-post-body", defaultExcludePostBody, "Regex pattern to exclude from POST body logging")
+	flag.StringVar(&flagVars.excludeResponseBody, "exclude-response-body", defaultExcludeResponseBody, "Regex pattern to exclude from response body logging")
+	flag.IntVar(&flagVars.readTimeout, "read-timeout", defaultReadTimeout, "Read timeout in seconds")
+	flag.IntVar(&flagVars.writeTimeout, "write-timeout", defaultWriteTimeout, "Write timeout in seconds")
+	flag.IntVar(&flagVars.idleTimeout, "idle-timeout", defaultIdleTimeout, "Idle timeout in seconds")
+
+	return flagVars
+}
+
+// setupViperDefaults sets up default values for viper.
+func setupViperDefaults(v *viper.Viper) {
+	defaults := map[string]interface{}{
+		"targetHostDsn":       defaultTargetHostDSN,
+		"listenIp":            defaultListenIP,
+		"listenPort":          defaultListenPort,
+		"headers":             make(map[string]string),
+		"loggingEnabled":      defaultLoggingEnabled,
+		"setRequestId":        defaultSetRequestID,
+		"exclude":             defaultExclude,
+		"logPostBody":         defaultLogPostBody,
+		"logResponseBody":     defaultLogResponseBody,
+		"excludePostBody":     defaultExcludePostBody,
+		"excludeResponseBody": defaultExcludeResponseBody,
+		"readTimeout":         defaultReadTimeout,
+		"writeTimeout":        defaultWriteTimeout,
+		"idleTimeout":         defaultIdleTimeout,
+	}
+
+	for key, value := range defaults {
+		v.SetDefault(key, value)
+	}
+}
+
+// setupViperEnvBindings sets up environment variable bindings for viper.
+func setupViperEnvBindings(v *viper.Viper) {
+	v.BindEnv("targetHostDsn", "TARGET_HOST_DSN")             //nolint:errcheck
+	v.BindEnv("listenIp", "LISTEN_IP")                        //nolint:errcheck
+	v.BindEnv("listenPort", "LISTEN_PORT")                    //nolint:errcheck
+	v.BindEnv("headers", "HEADERS")                           //nolint:errcheck
+	v.BindEnv("loggingEnabled", "LOGGING_ENABLED")            //nolint:errcheck
+	v.BindEnv("setRequestId", "SET_REQUEST_ID")               //nolint:errcheck
+	v.BindEnv("exclude", "EXCLUDE")                           //nolint:errcheck
+	v.BindEnv("logPostBody", "LOG_POST_BODY")                 //nolint:errcheck
+	v.BindEnv("logResponseBody", "LOG_RESPONSE_BODY")         //nolint:errcheck
+	v.BindEnv("excludePostBody", "EXCLUDE_POST_BODY")         //nolint:errcheck
+	v.BindEnv("excludeResponseBody", "EXCLUDE_RESPONSE_BODY") //nolint:errcheck
+	v.BindEnv("readTimeout", "READ_TIMEOUT")                  //nolint:errcheck
+	v.BindEnv("writeTimeout", "WRITE_TIMEOUT")                //nolint:errcheck
+	v.BindEnv("idleTimeout", "IDLE_TIMEOUT")                  //nolint:errcheck
+}
+
+// setupConfigPaths sets up configuration file paths for viper.
+func setupConfigPaths(v *viper.Viper) error {
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	v.AddConfigPath("/etc/restinthemiddle")
+	v.AddConfigPath(homeDir + "/.restinthemiddle")
+	v.AddConfigPath(".")
+
+	return nil
+}
+
+// updateConfigFromFlags updates the configuration with flag values.
+func updateConfigFromFlags(cfg *config.SourceConfig, flagVars *FlagVars) {
+	if flagVars.targetHostDSN != defaultTargetHostDSN {
+		cfg.TargetHostDSN = flagVars.targetHostDSN
+	}
+	if flagVars.listenIP != defaultListenIP {
+		cfg.ListenIP = flagVars.listenIP
+	}
+	if flagVars.listenPort != defaultListenPort {
+		cfg.ListenPort = flagVars.listenPort
+	}
+	cfg.LoggingEnabled = flagVars.loggingEnabled
+	cfg.SetRequestID = flagVars.setRequestID
+	if flagVars.exclude != defaultExclude {
+		cfg.Exclude = flagVars.exclude
+	}
+	cfg.LogPostBody = flagVars.logPostBody
+	cfg.LogResponseBody = flagVars.logResponseBody
+	if flagVars.excludePostBody != defaultExcludePostBody {
+		cfg.ExcludePostBody = flagVars.excludePostBody
+	}
+	if flagVars.excludeResponseBody != defaultExcludeResponseBody {
+		cfg.ExcludeResponseBody = flagVars.excludeResponseBody
+	}
+	if flagVars.readTimeout != defaultReadTimeout {
+		cfg.ReadTimeout = flagVars.readTimeout
+	}
+	if flagVars.writeTimeout != defaultWriteTimeout {
+		cfg.WriteTimeout = flagVars.writeTimeout
+	}
+	if flagVars.idleTimeout != defaultIdleTimeout {
+		cfg.IdleTimeout = flagVars.idleTimeout
+	}
+}
+
+// processHeaders processes header flags and updates the configuration.
+func processHeaders(cfg *config.SourceConfig, headers []string) {
+	if cfg.Headers == nil {
+		cfg.Headers = make(map[string]string)
+	}
+	for _, item := range headers {
+		k, v, found := strings.Cut(item, ":")
+		if found {
+			cfg.Headers[k] = v
+		}
+	}
+
+	// Process header cases
+	titleCaser := cases.Title(language.AmericanEnglish)
+	headersProcessed := make(map[string]string, len(cfg.Headers))
+	for k, v := range cfg.Headers {
+		headersProcessed[titleCaser.String(strings.ToLower(k))] = v
+	}
+	cfg.Headers = headersProcessed
 }

@@ -1,4 +1,6 @@
 ./restinthemiddle
-coverage.out
+*coverage*.html
+*coverage*.out
+todos.md
 notes.md
 *.log

@@ -59,13 +59,9 @@ func TestApp_Run_Success(t *testing.T) {
 	// Create a mock logger
 	mockLogger := zap.NewNop()
 
-	// Create a buffer to capture output
-	var output bytes.Buffer
-
 	app := &App{
 		ConfigLoader:  &MockConfigLoader{config: mockConfig},
 		LoggerFactory: &MockLoggerFactory{logger: mockLogger},
-		Writer:        &output,
 		Args:          []string{"test-app"},
 	}
 
@@ -261,6 +257,163 @@ func TestSetupFlags(t *testing.T) {
 
 	if flagVars.idleTimeout != testDefaultIdleTimeout {
 		t.Errorf("Expected idleTimeout default to be %d, got: %d", testDefaultIdleTimeout, flagVars.idleTimeout)
+	}
+}
+
+func TestSetupFlagsUsageTemplate(t *testing.T) {
+	// Reset flags before test
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	// Setup flags (this sets the custom Usage function)
+	setupFlags()
+
+	// Call the Usage function
+	flag.Usage()
+
+	// Restore stderr
+	w.Close()
+	os.Stderr = oldStderr
+
+	// Read the captured output
+	var buf bytes.Buffer
+	buf.ReadFrom(r) //nolint:errcheck
+	output := buf.String()
+
+	// Test that the output contains version information
+	if !strings.Contains(output, "restinthemiddle") {
+		t.Errorf("Expected usage output to contain 'restinthemiddle', got: %s", output)
+	}
+
+	// Test that the output contains usage information
+	if !strings.Contains(output, "Usage of") {
+		t.Errorf("Expected usage output to contain 'Usage of', got: %s", output)
+	}
+
+	// Test that the output contains flag definitions
+	if !strings.Contains(output, "--target-host-dsn") {
+		t.Errorf("Expected usage output to contain '--target-host-dsn', got: %s", output)
+	}
+
+	// Test that version info appears before usage
+	versionIndex := strings.Index(output, "restinthemiddle")
+	usageIndex := strings.Index(output, "Usage of")
+	if versionIndex == -1 || usageIndex == -1 || versionIndex >= usageIndex {
+		t.Errorf("Expected version info to appear before usage info. Version at %d, Usage at %d", versionIndex, usageIndex)
+	}
+
+	// Test that there's proper spacing (two newlines between version and usage)
+	if !strings.Contains(output, "\n\nUsage of") {
+		t.Errorf("Expected proper spacing between version and usage info, got: %s", output)
+	}
+}
+
+func TestSetupFlagsUsageTemplateWithMockVersion(t *testing.T) {
+	// Reset flags before test
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	// Capture stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	// Setup flags
+	setupFlags()
+
+	// Call the Usage function
+	flag.Usage()
+
+	// Restore stderr
+	w.Close()
+	os.Stderr = oldStderr
+
+	// Read the captured output
+	var buf bytes.Buffer
+	buf.ReadFrom(r) //nolint:errcheck
+	output := buf.String()
+
+	// Test that version.Info() is being called
+	// This should contain the pattern from version.Info(): "restinthemiddle X (built Y, commit Z)"
+	matched := strings.Contains(output, "(built") && strings.Contains(output, "commit")
+	if !matched {
+		t.Errorf("Expected usage output to match version pattern, got: %s", output)
+	}
+
+	// Test that output has the expected structure
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) < 3 {
+		t.Errorf("Expected at least 3 lines in usage output, got %d: %v", len(lines), lines)
+	}
+
+	// First line should be version info
+	if !strings.Contains(lines[0], "restinthemiddle") {
+		t.Errorf("Expected first line to contain version info, got: %s", lines[0])
+	}
+
+	// Second line should be empty (spacing)
+	if len(lines) > 1 && strings.TrimSpace(lines[1]) != "" {
+		t.Errorf("Expected second line to be empty for spacing, got: %s", lines[1])
+	}
+
+	// Third line should start with "Usage of"
+	if len(lines) > 2 && !strings.HasPrefix(lines[2], "Usage of") {
+		t.Errorf("Expected third line to start with 'Usage of', got: %s", lines[2])
+	}
+}
+
+func TestSetupFlagsCustomUsageSet(t *testing.T) {
+	// Reset flags before test
+	oldCommandLine := flag.CommandLine
+	oldUsage := flag.Usage
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() {
+		flag.CommandLine = oldCommandLine
+		flag.Usage = oldUsage
+	}()
+
+	// Setup flags (this should set a custom Usage function)
+	setupFlags()
+
+	// Test that the custom Usage function is not nil
+	if flag.Usage == nil {
+		t.Error("Expected setupFlags to set a non-nil Usage function")
+	}
+
+	// Test that calling the Usage function works without panicking
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Expected Usage function to execute without panic, but got: %v", r)
+		}
+	}()
+
+	// Capture stderr to test the function works
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	// Call the Usage function - this should not panic
+	flag.Usage()
+
+	// Restore stderr
+	w.Close()
+	os.Stderr = oldStderr
+
+	// Read output to verify it worked
+	var buf bytes.Buffer
+	buf.ReadFrom(r) //nolint:errcheck
+	output := buf.String()
+
+	// Should have some output (not empty)
+	if len(output) == 0 {
+		t.Error("Expected Usage function to produce output")
 	}
 }
 

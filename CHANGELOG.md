@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.3](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.2...v2.1.3) (2025-08-31)
+
+
+### Bug Fixes
+
+* add version in help ([790cf8f](https://github.com/restinthemiddle/restinthemiddle/commit/790cf8fdfc8e43b1c5f7bb24b911cb385eed7cbd))
+* **deps:** update module github.com/spf13/pflag to v1.0.8 ([abaf2c9](https://github.com/restinthemiddle/restinthemiddle/commit/abaf2c9713337e42fa005aa83b1bbd83ab812453))
+
 ## [2.1.2](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.1...v2.1.2) (2025-08-08)
 
 

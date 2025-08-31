@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/restinthemiddle/restinthemiddle/internal/version"
 	"github.com/restinthemiddle/restinthemiddle/internal/zapwriter"
 	"github.com/restinthemiddle/restinthemiddle/pkg/core"
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
@@ -188,6 +189,13 @@ type FlagVars struct {
 // setupFlags initializes all command line flags.
 func setupFlags() *FlagVars {
 	flagVars := &FlagVars{}
+
+	// Set custom usage template with version information
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "%s\n\n", version.Info())
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
 
 	flag.StringSliceVar(&flagVars.headers, "header", []string{}, "HTTP header to set. You may use this flag multiple times.")
 	flag.StringVar(&flagVars.targetHostDSN, "target-host-dsn", defaultTargetHostDSN, "Target host DSN to proxy requests to")

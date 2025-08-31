@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/restinthemiddle/restinthemiddle/internal/version"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -106,8 +107,9 @@ func getTargetURL(targetHostDsn string) *url.URL {
 	return url
 }
 
-// PrintConfig logs the env variables required for a reverse proxy.
+// PrintConfig logs the configuration and version information.
 func (s *SourceConfig) PrintConfig() {
+	fmt.Printf("%s\n\n", version.Info())
 	fmt.Println("YAML configuration:")
 	yamlString, _ := yaml.Marshal(s)
 	fmt.Printf("%s\n", string(yamlString))

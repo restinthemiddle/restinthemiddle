@@ -240,6 +240,7 @@ func TestPrintConfig(t *testing.T) {
 
 	// Check that the output contains expected content
 	expectedContents := []string{
+		"restinthemiddle", // Version info should be present
 		"YAML configuration:",
 		"targetHostDsn: http://example.com",
 		"listenIp: 127.0.0.1",

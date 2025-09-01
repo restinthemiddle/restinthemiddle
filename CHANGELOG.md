@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.4](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.3...v2.1.4) (2025-09-01)
+
+
+### Bug Fixes
+
+* **build:** use version args in Github Workflow ([8a39b73](https://github.com/restinthemiddle/restinthemiddle/commit/8a39b738479b66294fbbf709a74798c9873811f1))
+* **deps:** update module github.com/spf13/pflag to v1.0.9 ([0421ae7](https://github.com/restinthemiddle/restinthemiddle/commit/0421ae7193324cef6680b9a7ad3030504c555d8b))
+
 ## [2.1.3](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.2...v2.1.3) (2025-08-31)
 
 

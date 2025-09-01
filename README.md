@@ -2,7 +2,7 @@
 
 ![pulls](https://img.shields.io/docker/pulls/jdschulze/restinthemiddle)
 [![codecov](https://codecov.io/gh/restinthemiddle/restinthemiddle/branch/main/graph/badge.svg)](https://codecov.io/gh/restinthemiddle/restinthemiddle)
-![v2](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle?filter=2.*)
+![main](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle)
 
 This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
 

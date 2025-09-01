@@ -116,15 +116,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Determine version
-        id: version
+      - name: Determine build variables
+        id: build-vars
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            VERSION="${{ github.sha }}"
-          fi
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
+          echo "git_commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata
         id: meta
@@ -141,7 +142,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
           labels: |
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.version=${{ steps.build-vars.outputs.version }}
             org.opencontainers.image.title=restinthemiddle
             org.opencontainers.image.description=Restinthemiddle HTTP proxy server
             org.opencontainers.image.source={{url}}
@@ -156,6 +157,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.build-vars.outputs.version }}
+            BUILD_DATE=${{ steps.build-vars.outputs.build_date }}
+            GIT_COMMIT=${{ steps.build-vars.outputs.git_commit }}
 
   coverage-summary:
     name: Coverage Summary

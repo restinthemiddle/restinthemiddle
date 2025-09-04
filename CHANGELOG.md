@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.5](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.4...v2.1.5) (2025-09-04)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/spf13/pflag to v1.0.10 ([3bdf968](https://github.com/restinthemiddle/restinthemiddle/commit/3bdf9687c22fdfa55d55d54fd99a1ce28daff149))
+
 ## [2.1.4](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.3...v2.1.4) (2025-09-01)
 
 

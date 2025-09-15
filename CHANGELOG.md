@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.7](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.6...v2.1.7) (2025-09-15)
+
+
+### Bug Fixes
+
+* **ci:** change Docker Hub README update trigger condition ([1498cc1](https://github.com/restinthemiddle/restinthemiddle/commit/1498cc1623071ab717165d7d2a5c685b52320da9))
+
 ## [2.1.6](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.5...v2.1.6) (2025-09-15)
 
 

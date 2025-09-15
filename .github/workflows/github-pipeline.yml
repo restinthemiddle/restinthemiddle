@@ -164,7 +164,7 @@ jobs:
 
       - name: Update Docker Hub README
         uses: peter-evans/dockerhub-description@v4
-        if: github.event_name == 'release' && github.event.action == 'published'
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

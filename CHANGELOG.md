@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.5...v2.1.6) (2025-09-15)
+
+
+### Bug Fixes
+
+* **ci:** update Docker Hub README in GitHub Actions workflow ([0485b7c](https://github.com/restinthemiddle/restinthemiddle/commit/0485b7c157c8323a51a6c7ae98ff32fe13cac092))
+
 ## [2.1.5](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.4...v2.1.5) (2025-09-14)
 
 

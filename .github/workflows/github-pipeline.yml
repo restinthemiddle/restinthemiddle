@@ -163,7 +163,7 @@ jobs:
             GIT_COMMIT=${{ steps.build-vars.outputs.git_commit }}
 
       - name: Update Docker Hub README
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         if: startsWith(github.ref, 'refs/tags/')
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}

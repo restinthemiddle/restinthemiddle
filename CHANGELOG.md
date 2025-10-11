@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.8](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.7...v2.1.8) (2025-10-11)
+
+
+### Bug Fixes
+
+* **ci:** mixup of Docker Hub and Github repo name ([ad0b909](https://github.com/restinthemiddle/restinthemiddle/commit/ad0b9096efa563009c3598f373650ec5a328da10))
+* **deps:** update module golang.org/x/text to v0.30.0 ([98af8d4](https://github.com/restinthemiddle/restinthemiddle/commit/98af8d4c8405fbe7b4ad84e769644e0622d2ef7e))
+* update dependencies ([a36d255](https://github.com/restinthemiddle/restinthemiddle/commit/a36d255ba85eb143034f3968bd3f3a419af7a9c5))
+
 ## [2.1.7](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.6...v2.1.7) (2025-09-15)
 
 

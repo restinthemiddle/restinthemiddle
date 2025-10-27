@@ -18,23 +18,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Default configuration values.
-const (
-	defaultTargetHostDSN       = ""
-	defaultListenIP            = "0.0.0.0"
-	defaultListenPort          = "8000"
-	defaultLoggingEnabled      = true
-	defaultSetRequestID        = false
-	defaultExclude             = ""
-	defaultLogPostBody         = true
-	defaultLogResponseBody     = true
-	defaultExcludePostBody     = ""
-	defaultExcludeResponseBody = ""
-	defaultReadTimeout         = 5
-	defaultWriteTimeout        = 10
-	defaultIdleTimeout         = 120
-)
-
 // App represents the application with configurable dependencies.
 type App struct {
 	ConfigLoader  ConfigLoader
@@ -150,7 +133,7 @@ func LoadConfig(args []string) (*config.TranslatedConfig, error) {
 	// Process headers
 	processHeaders(&cfg, flagVars.headers)
 
-	if cfg.TargetHostDSN == defaultTargetHostDSN {
+	if cfg.TargetHostDSN == config.DefaultTargetHostDSN {
 		return nil, fmt.Errorf("no target host given")
 	}
 
@@ -182,6 +165,7 @@ type FlagVars struct {
 	logPostBody         bool
 	logResponseBody     bool
 	readTimeout         int
+	readHeaderTimeout   int
 	writeTimeout        int
 	idleTimeout         int
 }
@@ -198,19 +182,20 @@ func setupFlags() *FlagVars {
 	}
 
 	flag.StringSliceVar(&flagVars.headers, "header", []string{}, "HTTP header to set. You may use this flag multiple times.")
-	flag.StringVar(&flagVars.targetHostDSN, "target-host-dsn", defaultTargetHostDSN, "Target host DSN to proxy requests to")
-	flag.StringVar(&flagVars.listenIP, "listen-ip", defaultListenIP, "IP address to listen on")
-	flag.StringVar(&flagVars.listenPort, "listen-port", defaultListenPort, "Port to listen on")
-	flag.BoolVar(&flagVars.loggingEnabled, "logging-enabled", defaultLoggingEnabled, "Enable logging")
-	flag.BoolVar(&flagVars.setRequestID, "set-request-id", defaultSetRequestID, "Set request ID")
-	flag.StringVar(&flagVars.exclude, "exclude", defaultExclude, "Regex pattern to exclude from logging")
-	flag.BoolVar(&flagVars.logPostBody, "log-post-body", defaultLogPostBody, "Log POST request body")
-	flag.BoolVar(&flagVars.logResponseBody, "log-response-body", defaultLogResponseBody, "Log response body")
-	flag.StringVar(&flagVars.excludePostBody, "exclude-post-body", defaultExcludePostBody, "Regex pattern to exclude from POST body logging")
-	flag.StringVar(&flagVars.excludeResponseBody, "exclude-response-body", defaultExcludeResponseBody, "Regex pattern to exclude from response body logging")
-	flag.IntVar(&flagVars.readTimeout, "read-timeout", defaultReadTimeout, "Read timeout in seconds")
-	flag.IntVar(&flagVars.writeTimeout, "write-timeout", defaultWriteTimeout, "Write timeout in seconds")
-	flag.IntVar(&flagVars.idleTimeout, "idle-timeout", defaultIdleTimeout, "Idle timeout in seconds")
+	flag.StringVar(&flagVars.targetHostDSN, "target-host-dsn", config.DefaultTargetHostDSN, "Target host DSN to proxy requests to")
+	flag.StringVar(&flagVars.listenIP, "listen-ip", config.DefaultListenIP, "IP address to listen on")
+	flag.StringVar(&flagVars.listenPort, "listen-port", config.DefaultListenPort, "Port to listen on")
+	flag.BoolVar(&flagVars.loggingEnabled, "logging-enabled", config.DefaultLoggingEnabled, "Enable logging")
+	flag.BoolVar(&flagVars.setRequestID, "set-request-id", config.DefaultSetRequestID, "Set request ID")
+	flag.StringVar(&flagVars.exclude, "exclude", config.DefaultExclude, "Regex pattern to exclude from logging")
+	flag.BoolVar(&flagVars.logPostBody, "log-post-body", config.DefaultLogPostBody, "Log POST request body")
+	flag.BoolVar(&flagVars.logResponseBody, "log-response-body", config.DefaultLogResponseBody, "Log response body")
+	flag.StringVar(&flagVars.excludePostBody, "exclude-post-body", config.DefaultExcludePostBody, "Regex pattern to exclude from POST body logging")
+	flag.StringVar(&flagVars.excludeResponseBody, "exclude-response-body", config.DefaultExcludeResponseBody, "Regex pattern to exclude from response body logging")
+	flag.IntVar(&flagVars.readTimeout, "read-timeout", config.DefaultReadTimeout, "Read timeout in seconds")
+	flag.IntVar(&flagVars.readHeaderTimeout, "read-header-timeout", config.DefaultReadHeaderTimeout, "Read header timeout in seconds")
+	flag.IntVar(&flagVars.writeTimeout, "write-timeout", config.DefaultWriteTimeout, "Write timeout in seconds")
+	flag.IntVar(&flagVars.idleTimeout, "idle-timeout", config.DefaultIdleTimeout, "Idle timeout in seconds")
 
 	return flagVars
 }
@@ -218,20 +203,21 @@ func setupFlags() *FlagVars {
 // setupViperDefaults sets up default values for viper.
 func setupViperDefaults(v *viper.Viper) {
 	defaults := map[string]interface{}{
-		"targetHostDsn":       defaultTargetHostDSN,
-		"listenIp":            defaultListenIP,
-		"listenPort":          defaultListenPort,
+		"targetHostDsn":       config.DefaultTargetHostDSN,
+		"listenIp":            config.DefaultListenIP,
+		"listenPort":          config.DefaultListenPort,
 		"headers":             make(map[string]string),
-		"loggingEnabled":      defaultLoggingEnabled,
-		"setRequestId":        defaultSetRequestID,
-		"exclude":             defaultExclude,
-		"logPostBody":         defaultLogPostBody,
-		"logResponseBody":     defaultLogResponseBody,
-		"excludePostBody":     defaultExcludePostBody,
-		"excludeResponseBody": defaultExcludeResponseBody,
-		"readTimeout":         defaultReadTimeout,
-		"writeTimeout":        defaultWriteTimeout,
-		"idleTimeout":         defaultIdleTimeout,
+		"loggingEnabled":      config.DefaultLoggingEnabled,
+		"setRequestId":        config.DefaultSetRequestID,
+		"exclude":             config.DefaultExclude,
+		"logPostBody":         config.DefaultLogPostBody,
+		"logResponseBody":     config.DefaultLogResponseBody,
+		"excludePostBody":     config.DefaultExcludePostBody,
+		"excludeResponseBody": config.DefaultExcludeResponseBody,
+		"readTimeout":         config.DefaultReadTimeout,
+		"readHeaderTimeout":   config.DefaultReadHeaderTimeout,
+		"writeTimeout":        config.DefaultWriteTimeout,
+		"idleTimeout":         config.DefaultIdleTimeout,
 	}
 
 	for key, value := range defaults {
@@ -253,6 +239,7 @@ func setupViperEnvBindings(v *viper.Viper) {
 	v.BindEnv("excludePostBody", "EXCLUDE_POST_BODY")         //nolint:errcheck
 	v.BindEnv("excludeResponseBody", "EXCLUDE_RESPONSE_BODY") //nolint:errcheck
 	v.BindEnv("readTimeout", "READ_TIMEOUT")                  //nolint:errcheck
+	v.BindEnv("readHeaderTimeout", "READ_HEADER_TIMEOUT")     //nolint:errcheck
 	v.BindEnv("writeTimeout", "WRITE_TIMEOUT")                //nolint:errcheck
 	v.BindEnv("idleTimeout", "IDLE_TIMEOUT")                  //nolint:errcheck
 }
@@ -276,35 +263,38 @@ func setupConfigPaths(v *viper.Viper) error {
 
 // updateConfigFromFlags updates the configuration with flag values.
 func updateConfigFromFlags(cfg *config.SourceConfig, flagVars *FlagVars) {
-	if flagVars.targetHostDSN != defaultTargetHostDSN {
+	if flagVars.targetHostDSN != config.DefaultTargetHostDSN {
 		cfg.TargetHostDSN = flagVars.targetHostDSN
 	}
-	if flagVars.listenIP != defaultListenIP {
+	if flagVars.listenIP != config.DefaultListenIP {
 		cfg.ListenIP = flagVars.listenIP
 	}
-	if flagVars.listenPort != defaultListenPort {
+	if flagVars.listenPort != config.DefaultListenPort {
 		cfg.ListenPort = flagVars.listenPort
 	}
 	cfg.LoggingEnabled = flagVars.loggingEnabled
 	cfg.SetRequestID = flagVars.setRequestID
-	if flagVars.exclude != defaultExclude {
+	if flagVars.exclude != config.DefaultExclude {
 		cfg.Exclude = flagVars.exclude
 	}
 	cfg.LogPostBody = flagVars.logPostBody
 	cfg.LogResponseBody = flagVars.logResponseBody
-	if flagVars.excludePostBody != defaultExcludePostBody {
+	if flagVars.excludePostBody != config.DefaultExcludePostBody {
 		cfg.ExcludePostBody = flagVars.excludePostBody
 	}
-	if flagVars.excludeResponseBody != defaultExcludeResponseBody {
+	if flagVars.excludeResponseBody != config.DefaultExcludeResponseBody {
 		cfg.ExcludeResponseBody = flagVars.excludeResponseBody
 	}
-	if flagVars.readTimeout != defaultReadTimeout {
+	if flagVars.readTimeout != config.DefaultReadTimeout {
 		cfg.ReadTimeout = flagVars.readTimeout
 	}
-	if flagVars.writeTimeout != defaultWriteTimeout {
+	if flagVars.readHeaderTimeout != config.DefaultReadHeaderTimeout {
+		cfg.ReadHeaderTimeout = flagVars.readHeaderTimeout
+	}
+	if flagVars.writeTimeout != config.DefaultWriteTimeout {
 		cfg.WriteTimeout = flagVars.writeTimeout
 	}
-	if flagVars.idleTimeout != defaultIdleTimeout {
+	if flagVars.idleTimeout != config.DefaultIdleTimeout {
 		cfg.IdleTimeout = flagVars.idleTimeout
 	}
 }

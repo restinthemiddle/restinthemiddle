@@ -10,6 +10,24 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+// Default configuration values.
+const (
+	DefaultTargetHostDSN       = ""
+	DefaultListenIP            = "0.0.0.0"
+	DefaultListenPort          = "8000"
+	DefaultLoggingEnabled      = true
+	DefaultSetRequestID        = false
+	DefaultExclude             = ""
+	DefaultLogPostBody         = true
+	DefaultLogResponseBody     = true
+	DefaultExcludePostBody     = ""
+	DefaultExcludeResponseBody = ""
+	DefaultReadTimeout         = 0
+	DefaultReadHeaderTimeout   = 0
+	DefaultWriteTimeout        = 0
+	DefaultIdleTimeout         = 0
+)
+
 // SourceConfig holds the raw core configuration.
 type SourceConfig struct {
 	TargetHostDSN       string            `yaml:"targetHostDsn"`
@@ -26,6 +44,7 @@ type SourceConfig struct {
 	ReadTimeout         int               `yaml:"readTimeout"`
 	WriteTimeout        int               `yaml:"writeTimeout"`
 	IdleTimeout         int               `yaml:"idleTimeout"`
+	ReadHeaderTimeout   int               `yaml:"readHeaderTimeout"`
 }
 
 // TranslatedConfig holds the compiled core configuration.
@@ -44,6 +63,7 @@ type TranslatedConfig struct {
 	ReadTimeout               time.Duration
 	WriteTimeout              time.Duration
 	IdleTimeout               time.Duration
+	ReadHeaderTimeout         time.Duration
 }
 
 func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
@@ -56,19 +76,12 @@ func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 		return nil, fmt.Errorf("invalid target host DSN: %s", s.TargetHostDSN)
 	}
 
-	// Set default timeouts if not specified.
-	readTimeout := 5
-	if s.ReadTimeout > 0 {
-		readTimeout = s.ReadTimeout
-	}
-	writeTimeout := 10
-	if s.WriteTimeout > 0 {
-		writeTimeout = s.WriteTimeout
-	}
-	idleTimeout := 120
-	if s.IdleTimeout > 0 {
-		idleTimeout = s.IdleTimeout
-	}
+	// Use configured timeout values directly.
+	// Note: A value of 0 means no timeout (same as net/http.Server default).
+	readTimeout := s.ReadTimeout
+	writeTimeout := s.WriteTimeout
+	idleTimeout := s.IdleTimeout
+	readHeaderTimeout := s.ReadHeaderTimeout
 
 	return &TranslatedConfig{
 		TargetURL:                 targetURL,
@@ -85,6 +98,7 @@ func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 		ReadTimeout:               time.Duration(readTimeout) * time.Second,
 		WriteTimeout:              time.Duration(writeTimeout) * time.Second,
 		IdleTimeout:               time.Duration(idleTimeout) * time.Second,
+		ReadHeaderTimeout:         time.Duration(readHeaderTimeout) * time.Second,
 	}, nil
 }
 

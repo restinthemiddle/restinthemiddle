@@ -80,6 +80,10 @@ func TestNewTranslatedConfiguration(t *testing.T) {
 	if translated.IdleTimeout != 300*time.Second {
 		t.Errorf("Expected IdleTimeout 300s, got %v", translated.IdleTimeout)
 	}
+
+	if translated.ReadHeaderTimeout != 0 {
+		t.Errorf("Expected ReadHeaderTimeout 0s (not set, so uses default), got %v", translated.ReadHeaderTimeout)
+	}
 }
 
 func TestNewTranslatedConfigurationWithDefaultTimeouts(t *testing.T) {
@@ -92,16 +96,20 @@ func TestNewTranslatedConfigurationWithDefaultTimeouts(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if translated.ReadTimeout != 5*time.Second {
-		t.Errorf("Expected default ReadTimeout 5s, got %v", translated.ReadTimeout)
+	if translated.ReadTimeout != 0 {
+		t.Errorf("Expected default ReadTimeout 0s (no timeout), got %v", translated.ReadTimeout)
 	}
 
-	if translated.WriteTimeout != 10*time.Second {
-		t.Errorf("Expected default WriteTimeout 10s, got %v", translated.WriteTimeout)
+	if translated.WriteTimeout != 0 {
+		t.Errorf("Expected default WriteTimeout 0s (no timeout), got %v", translated.WriteTimeout)
 	}
 
-	if translated.IdleTimeout != 120*time.Second {
-		t.Errorf("Expected default IdleTimeout 120s, got %v", translated.IdleTimeout)
+	if translated.IdleTimeout != 0 {
+		t.Errorf("Expected default IdleTimeout 0s (no timeout), got %v", translated.IdleTimeout)
+	}
+
+	if translated.ReadHeaderTimeout != 0 {
+		t.Errorf("Expected default ReadHeaderTimeout 0s (no timeout), got %v", translated.ReadHeaderTimeout)
 	}
 }
 
@@ -222,6 +230,7 @@ func TestPrintConfig(t *testing.T) {
 		ReadTimeout:         10,
 		WriteTimeout:        20,
 		IdleTimeout:         300,
+		ReadHeaderTimeout:   5,
 	}
 
 	cfg.PrintConfig()
@@ -255,6 +264,7 @@ func TestPrintConfig(t *testing.T) {
 		"readTimeout: 10",
 		"writeTimeout: 20",
 		"idleTimeout: 300",
+		"readHeaderTimeout: 5",
 	}
 
 	for _, expected := range expectedContents {

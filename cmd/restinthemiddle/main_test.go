@@ -17,17 +17,18 @@ const (
 	testListenIP = "127.0.0.1"
 )
 
-// Import the default constants to use in tests.
+// Import the default constants from the config package to use in tests.
 const (
-	testDefaultTargetHostDSN       = ""
-	testDefaultListenIP            = "0.0.0.0"
-	testDefaultListenPort          = "8000"
-	testDefaultExclude             = ""
-	testDefaultExcludePostBody     = ""
-	testDefaultExcludeResponseBody = ""
-	testDefaultReadTimeout         = 5
-	testDefaultWriteTimeout        = 10
-	testDefaultIdleTimeout         = 120
+	testDefaultTargetHostDSN       = config.DefaultTargetHostDSN
+	testDefaultListenIP            = config.DefaultListenIP
+	testDefaultListenPort          = config.DefaultListenPort
+	testDefaultExclude             = config.DefaultExclude
+	testDefaultExcludePostBody     = config.DefaultExcludePostBody
+	testDefaultExcludeResponseBody = config.DefaultExcludeResponseBody
+	testDefaultReadTimeout         = config.DefaultReadTimeout
+	testDefaultReadHeaderTimeout   = config.DefaultReadHeaderTimeout
+	testDefaultWriteTimeout        = config.DefaultWriteTimeout
+	testDefaultIdleTimeout         = config.DefaultIdleTimeout
 )
 
 // Mock implementations for testing.
@@ -431,9 +432,10 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 		logResponseBody:     false,
 		excludePostBody:     "exclude-post",
 		excludeResponseBody: "exclude-response",
-		readTimeout:         30,
-		writeTimeout:        60,
-		idleTimeout:         300,
+		readTimeout:         45,  // Non-default value
+		readHeaderTimeout:   10,  // Non-default value
+		writeTimeout:        60,  // Non-default value
+		idleTimeout:         300, // Non-default value
 	}
 
 	updateConfigFromFlags(cfg, flagVars)
@@ -478,8 +480,12 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 		t.Errorf("Expected ExcludeResponseBody to be 'exclude-response', got: %s", cfg.ExcludeResponseBody)
 	}
 
-	if cfg.ReadTimeout != 30 {
-		t.Errorf("Expected ReadTimeout to be 30, got: %d", cfg.ReadTimeout)
+	if cfg.ReadTimeout != 45 {
+		t.Errorf("Expected ReadTimeout to be 45, got: %d", cfg.ReadTimeout)
+	}
+
+	if cfg.ReadHeaderTimeout != 10 {
+		t.Errorf("Expected ReadHeaderTimeout to be 10, got: %d", cfg.ReadHeaderTimeout)
 	}
 
 	if cfg.WriteTimeout != 60 {
@@ -506,6 +512,7 @@ func TestUpdateConfigFromFlags_DefaultValues(t *testing.T) {
 		excludePostBody:     testDefaultExcludePostBody,     // empty - should not update
 		excludeResponseBody: testDefaultExcludeResponseBody, // empty - should not update
 		readTimeout:         testDefaultReadTimeout,         // default - should not update
+		readHeaderTimeout:   testDefaultReadHeaderTimeout,   // default - should not update
 		writeTimeout:        testDefaultWriteTimeout,        // default - should not update
 		idleTimeout:         testDefaultIdleTimeout,         // default - should not update
 	}
@@ -538,6 +545,10 @@ func TestUpdateConfigFromFlags_DefaultValues(t *testing.T) {
 
 	if cfg.ReadTimeout != 0 {
 		t.Errorf("Expected ReadTimeout to remain 0, got: %d", cfg.ReadTimeout)
+	}
+
+	if cfg.ReadHeaderTimeout != 0 {
+		t.Errorf("Expected ReadHeaderTimeout to remain 0, got: %d", cfg.ReadHeaderTimeout)
 	}
 
 	if cfg.WriteTimeout != 0 {

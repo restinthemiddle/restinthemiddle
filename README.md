@@ -93,8 +93,9 @@ logPostBody: true
 logResponseBody: true
 excludePostBody: ""
 excludeResponseBody: ""
-readTimeout: 5
-writeTimeout: 10
+readTimeout: 30
+readHeaderTimeout: 10
+writeTimeout: 30
 idleTimeout: 120
 ```
 
@@ -119,9 +120,46 @@ There are several file locations where configuration is being searched for. The 
 | `logResponseBody` (optional)     | `LOG_RESPONSE_BODY`     | --log-response-body     | Log the response's body.                                                                                                                                     | `true`                                         |
 | `excludePostBody` (optional)     | `EXCLUDE_POST_BODY`     | --exclude-post-body     | If the given URL path matches this Regular Expression the request body (post) is set empty.                                                                  | `""`                                           |
 | `excludeResponseBody` (optional) | `EXCLUDE_RESPONSE_BODY` | --exclude-response-body | If the given URL path matches this Regular Expression the response body is set emtpy.                                                                        | `""`                                           |
-| `readTimeout` (optional)         | `READ_TIMEOUT`          | --read-timeout          | Read timeout in seconds.                                                                                                                                     | `5`                                            |
-| `writeTimeout` (optional)        | `WRITE_TIMEOUT`         | --write-timeout         | Write timeout in seconds.                                                                                                                                    | `10`                                           |
-| `idleTimeout` (optional)         | `IDLE_TIMEOUT`          | --idle-timeout          | Idle timeout in seconds.                                                                                                                                     | `120`                                          |
+| `readTimeout` (optional)         | `READ_TIMEOUT`          | --read-timeout          | Read timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                          | `0` (no timeout)                               |
+| `readHeaderTimeout` (optional)   | `READ_HEADER_TIMEOUT`   | --read-header-timeout   | Read header timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                   | `0` (no timeout)                               |
+| `writeTimeout` (optional)        | `WRITE_TIMEOUT`         | --write-timeout         | Write timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                         | `0` (no timeout)                               |
+| `idleTimeout` (optional)         | `IDLE_TIMEOUT`          | --idle-timeout          | Idle timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                          | `0` (no timeout)                               |
+
+**Note:** See the [net/http.Server documentation](https://pkg.go.dev/net/http#Server) for detailed information about the behavior of `ReadTimeout`, `ReadHeaderTimeout`, `WriteTimeout`, and `IdleTimeout`.
+
+##### Timeout Configuration
+
+**Important:** The default timeout values are `0` (no timeout), which matches the behavior of Go's `net/http.Server`. While this provides maximum flexibility, it can expose your service to resource exhaustion and security vulnerabilities.
+
+**Recommended production values:**
+
+```yaml
+readTimeout: 30
+readHeaderTimeout: 10
+writeTimeout: 30
+idleTimeout: 120
+```
+
+**Why you should configure timeouts:**
+
+* **ReadHeaderTimeout (recommended: 10s)**: Protects against [Slowloris attacks](https://en.wikipedia.org/wiki/Slowloris_(computer_security)) where clients send headers very slowly to exhaust server resources.
+* **ReadTimeout (recommended: 30s)**: Prevents slow clients from holding connections indefinitely while sending request bodies.
+* **WriteTimeout (recommended: 30s)**: Ensures responses are sent in a reasonable timeframe, preventing resource leaks from slow or stalled connections.
+* **IdleTimeout (recommended: 120s)**: Controls how long keep-alive connections remain open between requests, balancing connection reuse with resource management.
+
+**Without explicit timeouts:**
+
+* Vulnerable to slowloris and similar DoS attacks
+* Risk of resource exhaustion from hanging connections
+* Potential memory leaks from abandoned connections
+* No protection against malicious or buggy clients
+
+**With proper timeouts:**
+
+* Protection against common attack vectors
+* Predictable resource usage
+* Automatic cleanup of stale connections
+* Better overall system stability
 
 ##### The target host DSN
 

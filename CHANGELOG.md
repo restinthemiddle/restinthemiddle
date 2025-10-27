@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.8...v2.2.0) (2025-10-27)
+
+
+### Features
+
+* add ReadHeaderTimeout config and update timeout defaults ([49c4509](https://github.com/restinthemiddle/restinthemiddle/commit/49c45097dbc51ec335c086d6dfe8f29bbbde65b2))
+
 ## [2.1.8](https://github.com/restinthemiddle/restinthemiddle/compare/v2.1.7...v2.1.8) (2025-10-11)
 
 

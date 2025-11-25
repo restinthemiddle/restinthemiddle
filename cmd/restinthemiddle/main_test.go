@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 	flag "github.com/spf13/pflag"
@@ -419,24 +421,32 @@ func TestSetupFlagsCustomUsageSet(t *testing.T) {
 }
 
 func TestUpdateConfigFromFlags(t *testing.T) {
-	cfg := &config.SourceConfig{}
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
 
-	flagVars := &FlagVars{
-		targetHostDSN:       "http://example.com",
-		listenIP:            testListenIP,
-		listenPort:          "9000",
-		loggingEnabled:      false,
-		setRequestID:        true,
-		exclude:             "test-exclude",
-		logPostBody:         false,
-		logResponseBody:     false,
-		excludePostBody:     "exclude-post",
-		excludeResponseBody: "exclude-response",
-		readTimeout:         45,  // Non-default value
-		readHeaderTimeout:   10,  // Non-default value
-		writeTimeout:        60,  // Non-default value
-		idleTimeout:         300, // Non-default value
+	flagVars := setupFlags()
+	args := []string{
+		"--target-host-dsn", "http://example.com",
+		"--listen-ip", testListenIP,
+		"--listen-port", "9000",
+		"--logging-enabled=false",
+		"--set-request-id",
+		"--exclude", "test-exclude",
+		"--log-post-body=false",
+		"--log-response-body=false",
+		"--exclude-post-body", "exclude-post",
+		"--exclude-response-body", "exclude-response",
+		"--read-timeout", "45",
+		"--read-header-timeout", "10",
+		"--write-timeout", "60",
+		"--idle-timeout", "300",
 	}
+	if err := flag.CommandLine.Parse(args); err != nil {
+		t.Fatalf("Failed to parse flags: %v", err)
+	}
+
+	cfg := &config.SourceConfig{}
 
 	updateConfigFromFlags(cfg, flagVars)
 
@@ -498,24 +508,16 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 }
 
 func TestUpdateConfigFromFlags_DefaultValues(t *testing.T) {
-	cfg := &config.SourceConfig{}
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
 
-	flagVars := &FlagVars{
-		targetHostDSN:       testDefaultTargetHostDSN, // empty - should not update
-		listenIP:            testDefaultListenIP,      // default - should not update
-		listenPort:          testDefaultListenPort,    // default - should not update
-		loggingEnabled:      true,
-		setRequestID:        false,
-		exclude:             testDefaultExclude, // empty - should not update
-		logPostBody:         true,
-		logResponseBody:     true,
-		excludePostBody:     testDefaultExcludePostBody,     // empty - should not update
-		excludeResponseBody: testDefaultExcludeResponseBody, // empty - should not update
-		readTimeout:         testDefaultReadTimeout,         // default - should not update
-		readHeaderTimeout:   testDefaultReadHeaderTimeout,   // default - should not update
-		writeTimeout:        testDefaultWriteTimeout,        // default - should not update
-		idleTimeout:         testDefaultIdleTimeout,         // default - should not update
+	flagVars := setupFlags()
+	if err := flag.CommandLine.Parse([]string{}); err != nil {
+		t.Fatalf("Failed to parse flags: %v", err)
 	}
+
+	cfg := &config.SourceConfig{}
 
 	updateConfigFromFlags(cfg, flagVars)
 
@@ -683,6 +685,98 @@ func TestSetupConfigPaths_UserHomeDirError(t *testing.T) {
 	// The function should have set up at least the basic config paths
 	// We can verify that the function completed without error
 	// In a real scenario, you could check that certain paths were added to viper
+}
+
+func TestLoadConfig_ConfigBooleansRespected(t *testing.T) {
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	tmpDir := t.TempDir()
+	configContent := `
+targetHostDsn: "http://config.example"
+loggingEnabled: false
+setRequestId: true
+logPostBody: false
+logResponseBody: false
+`
+	configPath := filepath.Join(tmpDir, "config.yaml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	t.Chdir(tmpDir)
+
+	cfg, err := LoadConfig([]string{"restinthemiddle"})
+	if err != nil {
+		t.Fatalf("LoadConfig returned error: %v", err)
+	}
+
+	if cfg.LoggingEnabled {
+		t.Error("Expected LoggingEnabled to remain false from config file")
+	}
+	if !cfg.SetRequestID {
+		t.Error("Expected SetRequestID to remain true from config file")
+	}
+	if cfg.LogPostBody {
+		t.Error("Expected LogPostBody to remain false from config file")
+	}
+	if cfg.LogResponseBody {
+		t.Error("Expected LogResponseBody to remain false from config file")
+	}
+}
+
+func TestLoadConfig_FlagAndEnvPrecedence(t *testing.T) {
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	tmpDir := t.TempDir()
+	configContent := `
+targetHostDsn: "http://config.example"
+listenIp: "10.0.0.1"
+listenPort: "9000"
+loggingEnabled: true
+readTimeout: 15
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(configContent), 0o600); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	t.Chdir(tmpDir)
+
+	t.Setenv("TARGET_HOST_DSN", "http://env.example")
+	t.Setenv("LISTEN_IP", "10.0.0.2")
+	t.Setenv("LISTEN_PORT", "9001")
+	t.Setenv("LOGGING_ENABLED", "true")
+
+	args := []string{
+		"restinthemiddle",
+		"--target-host-dsn", "http://flag.example",
+		"--listen-port", "9002",
+		"--logging-enabled=false",
+	}
+
+	cfg, err := LoadConfig(args)
+	if err != nil {
+		t.Fatalf("LoadConfig returned error: %v", err)
+	}
+
+	if cfg.TargetURL.String() != "http://flag.example" {
+		t.Errorf("Expected target host from flag, got %s", cfg.TargetURL.String())
+	}
+	if cfg.ListenPort != "9002" {
+		t.Errorf("Expected ListenPort from flag (9002), got %s", cfg.ListenPort)
+	}
+	if cfg.ListenIP != "10.0.0.2" {
+		t.Errorf("Expected ListenIP from env (10.0.0.2), got %s", cfg.ListenIP)
+	}
+	if cfg.LoggingEnabled {
+		t.Error("Expected LoggingEnabled to be false from flag override")
+	}
+	if cfg.ReadTimeout != 15*time.Second {
+		t.Errorf("Expected ReadTimeout from config (15s), got %v", cfg.ReadTimeout)
+	}
 }
 
 // Integration test for LoadConfig.

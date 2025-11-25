@@ -67,15 +67,21 @@ func (m *MockServer) Start() error {
 		return fmt.Errorf("server already started")
 	}
 
-	m.server = &http.Server{
-		Addr:    fmt.Sprintf(":%s", m.port),
-		Handler: m,
+	addr := "127.0.0.1:0"
+	if m.port != "" {
+		addr = fmt.Sprintf("127.0.0.1:%s", m.port)
 	}
 
-	// Try to start the server directly and catch port binding errors
-	listener, err := net.Listen("tcp", m.server.Addr)
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return err // Port binding error will be passed to StartMockServer
+		return err
+	}
+
+	m.port = fmt.Sprintf("%d", listener.Addr().(*net.TCPAddr).Port)
+
+	m.server = &http.Server{
+		Addr:    listener.Addr().String(),
+		Handler: m,
 	}
 
 	m.started = true
@@ -94,7 +100,7 @@ func (m *MockServer) Start() error {
 
 // Stop stops the mock server
 func (m *MockServer) Stop() error {
-	if !m.started {
+	if !m.started || m.server == nil {
 		return nil
 	}
 	m.started = false
@@ -217,30 +223,9 @@ func (m *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // StartMockServer is a helper function to set up a MockServer with default values
 func StartMockServer() (*MockServer, error) {
-	// Try to find an available port starting from 18080, with a wider range
-	var mock *MockServer
-	var err error
-
-	for port := 18080; port <= 18120; port++ {
-		mock = NewMockServer(fmt.Sprintf("%d", port))
-		err = mock.Start()
-		if err == nil {
-			// Successfully started - only log if we didn't get the first port
-			if port > 18080 {
-				fmt.Printf("Mock server successfully started on port %d (after conflicts with port(s) 18080-%d)\n", port, port-1)
-			}
-			break // Successfully started on this port
-		}
-		// For port conflicts, show which port will be tried next
-		if port < 18120 {
-			fmt.Printf("Mock server port %d occupied, trying port %d\n", port, port+1)
-		} else {
-			fmt.Printf("Mock server port %d occupied, no more ports available\n", port)
-		}
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to start mock server on any port between 18080-18120: %w", err)
+	mock := NewMockServer("")
+	if err := mock.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start mock server: %w", err)
 	}
 
 	// Default test endpoint

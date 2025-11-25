@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.2](https://github.com/restinthemiddle/restinthemiddle/compare/v2.2.1...v2.2.2) (2025-11-25)
+
+
+### Bug Fixes
+
+* config evaluation ([00a7ebd](https://github.com/restinthemiddle/restinthemiddle/commit/00a7ebd536f9a5110b9d3b58189f601bafa1d922))
+* **deps:** update module go.uber.org/zap to v1.27.1 ([4e2e744](https://github.com/restinthemiddle/restinthemiddle/commit/4e2e744ec8efd4c9908dd9a0909181a017e38a24))
+
 ## [2.2.1](https://github.com/restinthemiddle/restinthemiddle/compare/v2.2.0...v2.2.1) (2025-11-11)
 
 

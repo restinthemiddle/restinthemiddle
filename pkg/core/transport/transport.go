@@ -101,7 +101,7 @@ func NewProfilingTransport(cfg *config.TranslatedConfig) (*ProfilingTransport, e
 func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	requestBodyString := ""
 
-	if r.ContentLength > 0 {
+	if r.ContentLength > 0 && transport.cfg.LogPostBody {
 		func() {
 			if transport.cfg.ExcludePostBodyRegexp != nil && transport.cfg.ExcludePostBodyRegexp.MatchString(r.URL.Path) {
 				return

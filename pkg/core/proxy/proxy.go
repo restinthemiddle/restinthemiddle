@@ -63,13 +63,13 @@ func (p *DefaultReverseProxy) ModifyResponse(f func(*http.Response) error) {
 	p.ReverseProxy.ModifyResponse = f
 }
 
-func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (ReverseProxy, error) {
+func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (ReverseProxy, error) {  //nolint:gocognit
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 
-		if req.Header.Get("X-Request-Id") == "" {
+		if cfg.SetRequestID && req.Header.Get("X-Request-Id") == "" {
 			requestID := uuid.Must(uuid.NewRandom())
 			req.Header.Set("X-Request-Id", requestID.String())
 		}

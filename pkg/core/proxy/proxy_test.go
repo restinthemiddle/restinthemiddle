@@ -236,8 +236,9 @@ func TestProxyDirectorHeaders(t *testing.T) {
 			}
 
 			cfg := &config.TranslatedConfig{
-				TargetURL: targetURL,
-				Headers:   tt.configHeaders,
+				TargetURL:    targetURL,
+				Headers:      tt.configHeaders,
+				SetRequestID: true,
 			}
 
 			// Create a test server to capture the modified request
@@ -271,6 +272,41 @@ func TestProxyDirectorHeaders(t *testing.T) {
 				verifyExpectedHeader(t, capturedRequest, key, expectedValue)
 			}
 		})
+	}
+}
+
+func TestProxyDirectorRespectsDisabledRequestID(t *testing.T) {
+	targetURL, err := url.Parse("http://example.com")
+	if err != nil {
+		t.Fatalf("Failed to parse target URL: %v", err)
+	}
+
+	cfg := &config.TranslatedConfig{
+		TargetURL:    targetURL,
+		SetRequestID: false,
+	}
+
+	var capturedRequest *http.Request
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedRequest = r
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	testServerURL, _ := url.Parse(testServer.URL)
+	cfg.TargetURL = testServerURL
+
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if capturedRequest.Header.Get("X-Request-Id") != "" {
+		t.Errorf("Expected X-Request-Id to remain unset when SetRequestID is false")
 	}
 }
 

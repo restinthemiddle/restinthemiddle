@@ -261,40 +261,55 @@ func setupConfigPaths(v *viper.Viper) error {
 	return nil
 }
 
+func flagChanged(name string) bool {
+	if f := flag.CommandLine.Lookup(name); f != nil {
+		return f.Changed
+	}
+	return false
+}
+
 // updateConfigFromFlags updates the configuration with flag values.
 func updateConfigFromFlags(cfg *config.SourceConfig, flagVars *FlagVars) {
-	if flagVars.targetHostDSN != config.DefaultTargetHostDSN {
+	if flagChanged("target-host-dsn") {
 		cfg.TargetHostDSN = flagVars.targetHostDSN
 	}
-	if flagVars.listenIP != config.DefaultListenIP {
+	if flagChanged("listen-ip") {
 		cfg.ListenIP = flagVars.listenIP
 	}
-	if flagVars.listenPort != config.DefaultListenPort {
+	if flagChanged("listen-port") {
 		cfg.ListenPort = flagVars.listenPort
 	}
-	cfg.LoggingEnabled = flagVars.loggingEnabled
-	cfg.SetRequestID = flagVars.setRequestID
-	if flagVars.exclude != config.DefaultExclude {
+	if flagChanged("logging-enabled") {
+		cfg.LoggingEnabled = flagVars.loggingEnabled
+	}
+	if flagChanged("set-request-id") {
+		cfg.SetRequestID = flagVars.setRequestID
+	}
+	if flagChanged("exclude") {
 		cfg.Exclude = flagVars.exclude
 	}
-	cfg.LogPostBody = flagVars.logPostBody
-	cfg.LogResponseBody = flagVars.logResponseBody
-	if flagVars.excludePostBody != config.DefaultExcludePostBody {
+	if flagChanged("log-post-body") {
+		cfg.LogPostBody = flagVars.logPostBody
+	}
+	if flagChanged("log-response-body") {
+		cfg.LogResponseBody = flagVars.logResponseBody
+	}
+	if flagChanged("exclude-post-body") {
 		cfg.ExcludePostBody = flagVars.excludePostBody
 	}
-	if flagVars.excludeResponseBody != config.DefaultExcludeResponseBody {
+	if flagChanged("exclude-response-body") {
 		cfg.ExcludeResponseBody = flagVars.excludeResponseBody
 	}
-	if flagVars.readTimeout != config.DefaultReadTimeout {
+	if flagChanged("read-timeout") {
 		cfg.ReadTimeout = flagVars.readTimeout
 	}
-	if flagVars.readHeaderTimeout != config.DefaultReadHeaderTimeout {
+	if flagChanged("read-header-timeout") {
 		cfg.ReadHeaderTimeout = flagVars.readHeaderTimeout
 	}
-	if flagVars.writeTimeout != config.DefaultWriteTimeout {
+	if flagChanged("write-timeout") {
 		cfg.WriteTimeout = flagVars.writeTimeout
 	}
-	if flagVars.idleTimeout != config.DefaultIdleTimeout {
+	if flagChanged("idle-timeout") {
 		cfg.IdleTimeout = flagVars.idleTimeout
 	}
 }

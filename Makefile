@@ -34,7 +34,7 @@ lint:
 	golangci-lint run --config .golangci.yml --timeout 5m
 
 test:
-	go test -v ./...
+	go test -race -v ./...
 
 test-coverage:
 	go test -v -cover ./...
@@ -49,7 +49,7 @@ test-coverage-html: coverage.out
 test-integration:
 	@if [ -d "tests/integration" ] && [ -n "$$(find tests/integration -name '*.go' 2>/dev/null)" ]; then \
 		echo "Running integration tests..."; \
-		go test -v -tags integration ./tests/integration/...; \
+		go test -race -v -tags integration ./tests/integration/...; \
 	else \
 		echo "No integration tests found in tests/integration/"; \
 	fi

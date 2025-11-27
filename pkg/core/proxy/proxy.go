@@ -63,7 +63,7 @@ func (p *DefaultReverseProxy) ModifyResponse(f func(*http.Response) error) {
 	p.ReverseProxy.ModifyResponse = f
 }
 
-func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (ReverseProxy, error) {  //nolint:gocognit
+func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (ReverseProxy, error) { //nolint:gocognit
 	targetQuery := target.RawQuery
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme

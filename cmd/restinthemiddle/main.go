@@ -4,13 +4,17 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/restinthemiddle/restinthemiddle/internal/version"
 	"github.com/restinthemiddle/restinthemiddle/internal/zapwriter"
 	"github.com/restinthemiddle/restinthemiddle/pkg/core"
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
+	"github.com/restinthemiddle/restinthemiddle/pkg/metrics"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -57,6 +61,32 @@ func (a *App) Run() error {
 	translatedConfig, err := a.ConfigLoader.Load(a.Args)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize metrics if enabled
+	if translatedConfig.MetricsEnabled {
+		metrics.Init()
+
+		// Start metrics server in background
+		go func() {
+			mux := http.NewServeMux()
+			mux.Handle("/metrics", promhttp.Handler())
+			addr := translatedConfig.ListenIP + ":" + translatedConfig.MetricsPort
+
+			metricsServer := &http.Server{
+				Addr:              addr,
+				Handler:           mux,
+				ReadTimeout:       10 * time.Second,
+				WriteTimeout:      10 * time.Second,
+				IdleTimeout:       60 * time.Second,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
+
+			fmt.Fprintf(a.Writer, "Metrics server listening on http://%s/metrics\n", addr)
+			if err := metricsServer.ListenAndServe(); err != nil {
+				log.Printf("Metrics server error: %v", err)
+			}
+		}()
 	}
 
 	logger, err := a.LoggerFactory.CreateLogger()
@@ -157,6 +187,8 @@ type FlagVars struct {
 	targetHostDSN       string
 	listenIP            string
 	listenPort          string
+	metricsEnabled      bool
+	metricsPort         string
 	loggingEnabled      bool
 	setRequestID        bool
 	exclude             string
@@ -185,6 +217,8 @@ func setupFlags() *FlagVars {
 	flag.StringVar(&flagVars.targetHostDSN, "target-host-dsn", config.DefaultTargetHostDSN, "Target host DSN to proxy requests to")
 	flag.StringVar(&flagVars.listenIP, "listen-ip", config.DefaultListenIP, "IP address to listen on")
 	flag.StringVar(&flagVars.listenPort, "listen-port", config.DefaultListenPort, "Port to listen on")
+	flag.BoolVar(&flagVars.metricsEnabled, "metrics-enabled", config.DefaultMetricsEnabled, "Enable Prometheus metrics endpoint")
+	flag.StringVar(&flagVars.metricsPort, "metrics-port", config.DefaultMetricsPort, "Port for Prometheus metrics endpoint")
 	flag.BoolVar(&flagVars.loggingEnabled, "logging-enabled", config.DefaultLoggingEnabled, "Enable logging")
 	flag.BoolVar(&flagVars.setRequestID, "set-request-id", config.DefaultSetRequestID, "Set request ID")
 	flag.StringVar(&flagVars.exclude, "exclude", config.DefaultExclude, "Regex pattern to exclude from logging")
@@ -206,6 +240,8 @@ func setupViperDefaults(v *viper.Viper) {
 		"targetHostDsn":       config.DefaultTargetHostDSN,
 		"listenIp":            config.DefaultListenIP,
 		"listenPort":          config.DefaultListenPort,
+		"metricsEnabled":      config.DefaultMetricsEnabled,
+		"metricsPort":         config.DefaultMetricsPort,
 		"headers":             make(map[string]string),
 		"loggingEnabled":      config.DefaultLoggingEnabled,
 		"setRequestId":        config.DefaultSetRequestID,
@@ -230,6 +266,8 @@ func setupViperEnvBindings(v *viper.Viper) {
 	v.BindEnv("targetHostDsn", "TARGET_HOST_DSN")             //nolint:errcheck
 	v.BindEnv("listenIp", "LISTEN_IP")                        //nolint:errcheck
 	v.BindEnv("listenPort", "LISTEN_PORT")                    //nolint:errcheck
+	v.BindEnv("metricsEnabled", "METRICS_ENABLED")            //nolint:errcheck
+	v.BindEnv("metricsPort", "METRICS_PORT")                  //nolint:errcheck
 	v.BindEnv("headers", "HEADERS")                           //nolint:errcheck
 	v.BindEnv("loggingEnabled", "LOGGING_ENABLED")            //nolint:errcheck
 	v.BindEnv("setRequestId", "SET_REQUEST_ID")               //nolint:errcheck
@@ -278,6 +316,12 @@ func updateConfigFromFlags(cfg *config.SourceConfig, flagVars *FlagVars) {
 	}
 	if flagChanged("listen-port") {
 		cfg.ListenPort = flagVars.listenPort
+	}
+	if flagChanged("metrics-enabled") {
+		cfg.MetricsEnabled = flagVars.metricsEnabled
+	}
+	if flagChanged("metrics-port") {
+		cfg.MetricsPort = flagVars.metricsPort
 	}
 	if flagChanged("logging-enabled") {
 		cfg.LoggingEnabled = flagVars.loggingEnabled

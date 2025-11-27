@@ -343,3 +343,150 @@ func TestAuthMergingFromDSNAndHeader(t *testing.T) {
 		t.Fatalf("Authorization header = %v, want %s", auth, expected)
 	}
 }
+
+func TestMetricsEndpointEnabled(t *testing.T) {
+	bin := buildBinary(t)
+
+	mock, err := StartMockServer()
+	if err != nil {
+		t.Fatalf("start mock: %v", err)
+	}
+	defer mock.Stop()
+
+	metricsPort := getFreePort(t)
+	env := map[string]string{
+		"LISTEN_PORT":     getFreePort(t),
+		"TARGET_HOST_DSN": fmt.Sprintf("http://127.0.0.1:%s", mock.GetPort()),
+		"METRICS_ENABLED": "true",
+		"METRICS_PORT":    metricsPort,
+	}
+
+	proxy := startProxy(t, bin, env, nil, "")
+	defer proxy.stop()
+
+	// Make a request through the proxy to generate some metrics
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s/test", proxy.port))
+	if err != nil {
+		t.Fatalf("request through proxy: %v", err)
+	}
+	resp.Body.Close()
+
+	// Wait a bit for metrics to be updated
+	time.Sleep(100 * time.Millisecond)
+
+	// Now check the metrics endpoint
+	metricsURL := fmt.Sprintf("http://127.0.0.1:%s/metrics", metricsPort)
+	client := &http.Client{Timeout: 2 * time.Second}
+
+	metricsResp, err := client.Get(metricsURL)
+	if err != nil {
+		t.Fatalf("failed to get metrics: %v", err)
+	}
+	defer metricsResp.Body.Close()
+
+	if metricsResp.StatusCode != http.StatusOK {
+		t.Fatalf("metrics endpoint status = %d, want %d", metricsResp.StatusCode, http.StatusOK)
+	}
+
+	// Read the metrics content
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(metricsResp.Body)
+	metricsContent := buf.String()
+
+	// Verify expected metrics are present
+	expectedMetrics := []string{
+		"build_info",
+		"http_requests_total",
+		"http_requests_in_flight",
+		"http_request_duration_seconds",
+		"http_request_size_bytes",
+		"http_response_size_bytes",
+	}
+
+	for _, metric := range expectedMetrics {
+		if !bytes.Contains([]byte(metricsContent), []byte(metric)) {
+			t.Errorf("metrics output missing expected metric: %s", metric)
+		}
+	}
+
+	// Verify the request we made is counted
+	if !bytes.Contains([]byte(metricsContent), []byte(`http_requests_total{`)) {
+		t.Error("metrics should contain http_requests_total counter")
+	}
+}
+
+func TestMetricsEndpointDisabled(t *testing.T) {
+	bin := buildBinary(t)
+
+	mock, err := StartMockServer()
+	if err != nil {
+		t.Fatalf("start mock: %v", err)
+	}
+	defer mock.Stop()
+
+	metricsPort := getFreePort(t)
+	env := map[string]string{
+		"LISTEN_PORT":     getFreePort(t),
+		"TARGET_HOST_DSN": fmt.Sprintf("http://127.0.0.1:%s", mock.GetPort()),
+		"METRICS_ENABLED": "false",
+		"METRICS_PORT":    metricsPort,
+	}
+
+	proxy := startProxy(t, bin, env, nil, "")
+	defer proxy.stop()
+
+	// Make a request through the proxy to ensure it's working
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s/test", proxy.port))
+	if err != nil {
+		t.Fatalf("request through proxy: %v", err)
+	}
+	resp.Body.Close()
+
+	// Wait a bit
+	time.Sleep(100 * time.Millisecond)
+
+	// Try to access the metrics endpoint - it should not be available
+	metricsURL := fmt.Sprintf("http://127.0.0.1:%s/metrics", metricsPort)
+	client := &http.Client{Timeout: 500 * time.Millisecond}
+
+	_, err = client.Get(metricsURL)
+	if err == nil {
+		t.Fatal("metrics endpoint should not be accessible when METRICS_ENABLED=false")
+	}
+	// We expect a connection error since the metrics server shouldn't be running
+}
+
+func TestMetricsCustomPort(t *testing.T) {
+	bin := buildBinary(t)
+
+	mock, err := StartMockServer()
+	if err != nil {
+		t.Fatalf("start mock: %v", err)
+	}
+	defer mock.Stop()
+
+	customMetricsPort := getFreePort(t)
+	env := map[string]string{
+		"LISTEN_PORT":     getFreePort(t),
+		"TARGET_HOST_DSN": fmt.Sprintf("http://127.0.0.1:%s", mock.GetPort()),
+		"METRICS_ENABLED": "true",
+		"METRICS_PORT":    customMetricsPort,
+	}
+
+	proxy := startProxy(t, bin, env, nil, "")
+	defer proxy.stop()
+
+	// Verify metrics are available on the custom port
+	metricsURL := fmt.Sprintf("http://127.0.0.1:%s/metrics", customMetricsPort)
+	client := &http.Client{Timeout: 2 * time.Second}
+
+	metricsResp, err := client.Get(metricsURL)
+	if err != nil {
+		t.Fatalf("failed to get metrics on custom port %s: %v", customMetricsPort, err)
+	}
+	defer metricsResp.Body.Close()
+
+	if metricsResp.StatusCode != http.StatusOK {
+		t.Fatalf("metrics endpoint status = %d, want %d", metricsResp.StatusCode, http.StatusOK)
+	}
+}

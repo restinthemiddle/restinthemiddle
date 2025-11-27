@@ -15,6 +15,8 @@ const (
 	DefaultTargetHostDSN       = ""
 	DefaultListenIP            = "0.0.0.0"
 	DefaultListenPort          = "8000"
+	DefaultMetricsEnabled      = true
+	DefaultMetricsPort         = "9090"
 	DefaultLoggingEnabled      = true
 	DefaultSetRequestID        = false
 	DefaultExclude             = ""
@@ -33,6 +35,8 @@ type SourceConfig struct {
 	TargetHostDSN       string            `yaml:"targetHostDsn"`
 	ListenIP            string            `yaml:"listenIp"`
 	ListenPort          string            `yaml:"listenPort"`
+	MetricsEnabled      bool              `yaml:"metricsEnabled"`
+	MetricsPort         string            `yaml:"metricsPort"`
 	Headers             map[string]string `yaml:"headers,omitempty"`
 	LoggingEnabled      bool              `yaml:"loggingEnabled"`
 	SetRequestID        bool              `yaml:"setRequestId"`
@@ -52,6 +56,8 @@ type TranslatedConfig struct {
 	TargetURL                 *url.URL
 	ListenIP                  string
 	ListenPort                string
+	MetricsEnabled            bool
+	MetricsPort               string
 	Headers                   map[string]string
 	LoggingEnabled            bool
 	SetRequestID              bool
@@ -87,6 +93,8 @@ func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 		TargetURL:                 targetURL,
 		ListenIP:                  s.ListenIP,
 		ListenPort:                s.ListenPort,
+		MetricsEnabled:            s.MetricsEnabled,
+		MetricsPort:               s.MetricsPort,
 		Headers:                   s.Headers,
 		LoggingEnabled:            s.LoggingEnabled,
 		SetRequestID:              s.SetRequestID,

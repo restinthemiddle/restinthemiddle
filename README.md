@@ -12,7 +12,7 @@ This lightweight application acts as a HTTP logging proxy for developing and sta
 
 Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags) from Docker Hub
 
-```bash
+```shell
 docker pull jdschulze/restinthemiddle:2
 ```
 
@@ -22,7 +22,7 @@ Pinning the version to (at least) the major version is highly recommended. Use `
 
 Clone this repository and run `make docker`.
 
-```bash
+```shell
 git clone https://github.com/restinthemiddle/restinthemiddle.git
 cd restinthemiddle
 git checkout main
@@ -33,7 +33,7 @@ make docker
 
 Clone this repository and run `make build`.
 
-```bash
+```shell
 git clone https://github.com/restinthemiddle/restinthemiddle.git
 cd restinthemiddle
 git checkout main
@@ -110,8 +110,10 @@ There are several file locations where configuration is being searched for. The 
 | Configuration key                | Environment variable    | Command line flag       | Description                                                                                                                                                  | Default value                                  |
 |----------------------------------|-------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
 | `targetHostDsn` (required)       | `TARGET_HOST_DSN`       | --target-host-dsn       | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
-| `listenIp` (optional)            | `LISTEN_IP`             | --listen-ip             | The IP on which Restinthemiddle listens for requests.                                                                                                        | `0.0.0.0`                                      |
-| `listenPort` (optional)          | `LISTEN_PORT`           | --listen-port           | The port on which Restinthemiddle listens for to requests.                                                                                                   | `8000`                                         |
+| `listenIp` (optional)            | `LISTEN_IP`             | --listen-ip             | The IP Restinthemiddle is bound to.                                                                                                                          | `0.0.0.0`                                      |
+| `listenPort` (optional)          | `LISTEN_PORT`           | --listen-port           | The port Restinthemiddle is bound to.                                                                                                                        | `8000`                                         |
+| `metricsEnabled` (optional)      | `METRICS_ENABLED`       | --metrics-enabled       | Enable Prometheus metrics endpoint.                                                                                                                          | `true`                                         |
+| `metricsPort` (optional)         | `METRICS_PORT`          | --metrics-port          | The port on which the Prometheus metrics endpoint listens.                                                                                                   | `9090`                                         |
 | `headers` (optional)             | -                       | --header                | A dictionary of HTTP headers.                                                                                                                                | `User-Agent: Rest in the middle logging proxy` |
 | `loggingEnabled` (optional)      | `LOGGING_ENABLED`       | --logging-enabled       | Enable logging.                                                                                                                                              | `true`                                         |
 | `setRequestId` (optional)        | `SET_REQUEST_ID`        | --set-request-id        | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID.                                                                   | `false`                                        |
@@ -178,7 +180,7 @@ If a header is defined multiple times, the last assignment wins.
 
 If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g. a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the _target host DSN_ string:
 
-```bash
+```shell
 docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8000:8000 jdschulze/restinthemiddle:2 --header="Authorization:Bearer ABCD1234"
 ```
 
@@ -188,7 +190,7 @@ docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8
 
 We want to log HTTP calls against `www.example.com` over an insecure connection.
 
-```bash
+```shell
 # Set up the proxy
 docker run -it --rm -e TARGET_HOST_DSN=http://www.example.com -p 8000:8000 jdschulze/restinthemiddle:2
 
@@ -202,7 +204,7 @@ We want to log HTTP calls against `www.example.com:4430` over a TLS connection (
 
 Note that the base path defined in `TARGET_HOST_DSN` prefixes any subsequent calls!
 
-```bash
+```shell
 # Set up the proxy
 docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle:2
 
@@ -225,7 +227,7 @@ headers:
 loggingEnabled: false
 ```
 
-```bash
+```shell
 # Set up the proxy
 docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:2
 
@@ -235,7 +237,7 @@ curl -i http://127.0.0.1:8000/home
 
 #### With command line arguments
 
-```bash
+```shell
 # Set up the proxy
 docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 restinthemiddle --target-host-dsn=http://www.example.com --header=x-app-version:3.0.0
 ```
@@ -249,3 +251,7 @@ You may want to add the Restinthemiddle Helm repository:
 helm repo add restinthemiddle https://restinthemiddle.github.io/helm
 helm repo update
 ```
+
+## Metrics
+
+Restinthemiddle exposes Prometheus metrics on a separate HTTP endpoint for monitoring proxy performance and health. See [METRICS.md](./METRICS.md) for detailed documentation on available metrics, configuration options, and example queries.

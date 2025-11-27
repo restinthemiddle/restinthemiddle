@@ -10,10 +10,12 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"strings"
 	"sync"
 	"time"
 
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
+	"github.com/restinthemiddle/restinthemiddle/pkg/metrics"
 )
 
 // contextKey is a custom type for context keys to avoid collisions.
@@ -178,5 +180,42 @@ func (transport *ProfilingTransport) RoundTrip(r *http.Request) (*http.Response,
 		response.Request = response.Request.WithContext(ctxTiming)
 	}
 
+	// Track errors in metrics if enabled
+	if transport.cfg.MetricsEnabled && err != nil {
+		targetHost := transport.cfg.TargetURL.Host
+		errorType := classifyError(err)
+		metrics.HTTPUpstreamErrorsTotal.WithLabelValues(targetHost, errorType).Inc()
+
+		// Also track as proxy failure
+		metrics.HTTPProxyFailuresTotal.WithLabelValues(targetHost, errorType).Inc()
+	}
+
 	return response, err
+}
+
+// classifyError categorizes the error type for metrics.
+func classifyError(err error) string {
+	if err == nil {
+		return "none"
+	}
+
+	errStr := err.Error()
+	switch {
+	case strings.Contains(errStr, "connection refused"):
+		return "connection_refused"
+	case strings.Contains(errStr, "timeout"):
+		return "timeout"
+	case strings.Contains(errStr, "no such host"):
+		return "dns_error"
+	case strings.Contains(errStr, "EOF"):
+		return "eof"
+	case strings.Contains(errStr, "TLS"):
+		return "tls_error"
+	case strings.Contains(errStr, "context canceled"):
+		return "context_canceled"
+	case strings.Contains(errStr, "context deadline exceeded"):
+		return "context_deadline_exceeded"
+	default:
+		return "other"
+	}
 }

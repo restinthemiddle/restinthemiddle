@@ -5,11 +5,14 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 	"github.com/restinthemiddle/restinthemiddle/pkg/core/transport"
+	"github.com/restinthemiddle/restinthemiddle/pkg/metrics"
 )
 
 // ReverseProxy defines the interface for a reverse proxy.
@@ -46,7 +49,42 @@ func NewServer(cfg *config.TranslatedConfig) (*Server, error) {
 
 // ServeHTTP handles incoming HTTP requests.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.proxy.ServeHTTP(w, r)
+	if !s.cfg.MetricsEnabled {
+		s.proxy.ServeHTTP(w, r)
+		return
+	}
+
+	// Instrument with metrics
+	targetHost := s.cfg.TargetURL.Host
+	method := r.Method
+
+	// Track in-flight requests
+	metrics.HTTPRequestsInFlight.WithLabelValues(targetHost).Inc()
+	defer metrics.HTTPRequestsInFlight.WithLabelValues(targetHost).Dec()
+
+	// Track request size
+	requestSize := float64(computeApproximateRequestSize(r))
+	metrics.HTTPRequestSizeBytes.WithLabelValues(method, targetHost).Observe(requestSize)
+
+	// Wrap response writer to capture status code and response size
+	wrappedWriter := &responseWriterWrapper{
+		ResponseWriter: w,
+		statusCode:     http.StatusOK,
+	}
+
+	// Start timer for request duration
+	start := time.Now()
+
+	// Serve the request
+	s.proxy.ServeHTTP(wrappedWriter, r)
+
+	// Record metrics
+	duration := time.Since(start).Seconds()
+	statusCode := strconv.Itoa(wrappedWriter.statusCode)
+
+	metrics.HTTPRequestsTotal.WithLabelValues(method, statusCode, targetHost).Inc()
+	metrics.HTTPRequestDuration.WithLabelValues(method, statusCode, targetHost).Observe(duration)
+	metrics.HTTPResponseSizeBytes.WithLabelValues(method, statusCode, targetHost).Observe(float64(wrappedWriter.responseSize))
 }
 
 // SetModifyResponse sets the response modifier function.
@@ -150,4 +188,47 @@ func singleJoiningSlash(a, b string) string {
 		return a + "/" + b
 	}
 	return a + b
+}
+
+// responseWriterWrapper wraps http.ResponseWriter to capture status code and response size.
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	statusCode   int
+	responseSize int
+}
+
+func (w *responseWriterWrapper) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *responseWriterWrapper) Write(b []byte) (int, error) {
+	size, err := w.ResponseWriter.Write(b)
+	w.responseSize += size
+	return size, err
+}
+
+// computeApproximateRequestSize computes the approximate size of the HTTP request.
+func computeApproximateRequestSize(r *http.Request) int {
+	s := 0
+	if r.URL != nil {
+		s += len(r.URL.String())
+	}
+
+	s += len(r.Method)
+	s += len(r.Proto)
+	for name, values := range r.Header {
+		s += len(name)
+		for _, value := range values {
+			s += len(value)
+		}
+	}
+	s += len(r.Host)
+
+	// Add Content-Length if available
+	if r.ContentLength > 0 {
+		s += int(r.ContentLength)
+	}
+
+	return s
 }

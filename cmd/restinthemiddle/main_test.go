@@ -226,6 +226,10 @@ func TestSetupFlags(t *testing.T) {
 	flagVars := setupFlags()
 
 	// Test default values
+	if flagVars.targetHostDSN != testDefaultTargetHostDSN {
+		t.Errorf("Expected targetHostDSN default to be '%s', got: %s", testDefaultTargetHostDSN, flagVars.targetHostDSN)
+	}
+
 	if flagVars.listenIP != testDefaultListenIP {
 		t.Errorf("Expected listenIP default to be '%s', got: %s", testDefaultListenIP, flagVars.listenIP)
 	}
@@ -242,6 +246,18 @@ func TestSetupFlags(t *testing.T) {
 		t.Error("Expected setRequestID default to be false")
 	}
 
+	if flagVars.exclude != testDefaultExclude {
+		t.Errorf("Expected exclude default to be '%s', got: %s", testDefaultExclude, flagVars.exclude)
+	}
+
+	if flagVars.excludePostBody != testDefaultExcludePostBody {
+		t.Errorf("Expected excludePostBody default to be '%s', got: %s", testDefaultExcludePostBody, flagVars.excludePostBody)
+	}
+
+	if flagVars.excludeResponseBody != testDefaultExcludeResponseBody {
+		t.Errorf("Expected excludeResponseBody default to be '%s', got: %s", testDefaultExcludeResponseBody, flagVars.excludeResponseBody)
+	}
+
 	if !flagVars.logPostBody {
 		t.Error("Expected logPostBody default to be true")
 	}
@@ -252,6 +268,10 @@ func TestSetupFlags(t *testing.T) {
 
 	if flagVars.readTimeout != testDefaultReadTimeout {
 		t.Errorf("Expected readTimeout default to be %d, got: %d", testDefaultReadTimeout, flagVars.readTimeout)
+	}
+
+	if flagVars.readHeaderTimeout != testDefaultReadHeaderTimeout {
+		t.Errorf("Expected readHeaderTimeout default to be %d, got: %d", testDefaultReadHeaderTimeout, flagVars.readHeaderTimeout)
 	}
 
 	if flagVars.writeTimeout != testDefaultWriteTimeout {
@@ -430,6 +450,8 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 		"--target-host-dsn", "http://example.com",
 		"--listen-ip", testListenIP,
 		"--listen-port", "9000",
+		"--metrics-enabled=false",
+		"--metrics-port", "9091",
 		"--logging-enabled=false",
 		"--set-request-id",
 		"--exclude", "test-exclude",
@@ -460,6 +482,14 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 
 	if cfg.ListenPort != "9000" {
 		t.Errorf("Expected ListenPort to be '9000', got: %s", cfg.ListenPort)
+	}
+
+	if cfg.MetricsEnabled {
+		t.Error("Expected MetricsEnabled to be false")
+	}
+
+	if cfg.MetricsPort != "9091" {
+		t.Errorf("Expected MetricsPort to be '9091', got: %s", cfg.MetricsPort)
 	}
 
 	if cfg.LoggingEnabled {
@@ -825,6 +855,40 @@ headers:
 
 	if v.GetString("listenPort") != "9000" {
 		t.Errorf("Expected listenPort to be '9000', got: %s", v.GetString("listenPort"))
+	}
+}
+
+func TestFlagChanged(t *testing.T) {
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	setupFlags()
+
+	// Test with a non-existent flag (should return false)
+	if flagChanged("non-existent-flag") {
+		t.Error("Expected flagChanged to return false for non-existent flag")
+	}
+
+	// Test with an existing flag that hasn't been changed (should return false)
+	if flagChanged("target-host-dsn") {
+		t.Error("Expected flagChanged to return false for unchanged flag")
+	}
+
+	// Parse some flags to mark them as changed
+	args := []string{"--target-host-dsn", "http://example.com"}
+	if err := flag.CommandLine.Parse(args); err != nil {
+		t.Fatalf("Failed to parse flags: %v", err)
+	}
+
+	// Test with a changed flag (should return true)
+	if !flagChanged("target-host-dsn") {
+		t.Error("Expected flagChanged to return true for changed flag")
+	}
+
+	// Test with an existing but unchanged flag (should return false)
+	if flagChanged("listen-ip") {
+		t.Error("Expected flagChanged to return false for existing but unchanged flag")
 	}
 }
 

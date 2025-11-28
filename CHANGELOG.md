@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/restinthemiddle/restinthemiddle/compare/v2.2.2...v2.3.0) (2025-11-28)
+
+
+### Features
+
+* add a metrics endpoint for Prometheus metrics ([72da046](https://github.com/restinthemiddle/restinthemiddle/commit/72da0467f252fceb16271482e063b01a22bf5088))
+
 ## [2.2.2](https://github.com/restinthemiddle/restinthemiddle/compare/v2.2.1...v2.2.2) (2025-11-25)
 
 

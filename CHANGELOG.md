@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.1...v2.3.2) (2025-12-15)
+
+
+### Bug Fixes
+
+* build issues in Alpine 3.23.0 ([cfa2cc9](https://github.com/restinthemiddle/restinthemiddle/commit/cfa2cc98ed3de9708e902105098eb5608e232cda))
+
 ## [2.3.1](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.0...v2.3.1) (2025-12-12)
 
 

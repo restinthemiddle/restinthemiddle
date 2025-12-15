@@ -6,7 +6,7 @@ ARG GIT_COMMIT=unknown
 
 WORKDIR /src
 
-RUN apk -U upgrade \
+RUN apk -U upgrade --scripts=no apk-tools \
     && apk add --no-cache dumb-init
 
 COPY go.* .
@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.authors="Jens Schulze"
 
 ENV TZ=UTC
 
-RUN apk -U upgrade \
+RUN apk -U upgrade --scripts=no apk-tools \
     && apk add --no-cache ca-certificates tzdata \
     && rm -rf /var/cache/apk/*
 

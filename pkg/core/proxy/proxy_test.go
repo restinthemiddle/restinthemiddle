@@ -317,13 +317,13 @@ func TestProxyDirectorAuthorizationHeaders(t *testing.T) {
 		requestAuthHeader  string
 		expectedAuthHeader string
 	}{
-		{
+		{ //nolint:gosec // test credentials
 			name:               "Basic Auth from DSN only",
 			targetURL:          "http://user:pass@example.com",
 			requestAuthHeader:  "",
 			expectedAuthHeader: "Basic dXNlcjpwYXNz", // base64(user:pass)
 		},
-		{
+		{ //nolint:gosec // test credentials
 			name:               "Authorization header merged with Basic Auth",
 			targetURL:          "http://user:pass@example.com",
 			requestAuthHeader:  "Bearer token123",

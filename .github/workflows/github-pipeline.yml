@@ -234,8 +234,8 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
       - name: Enable automerge for release PR
-        if: steps.release.outputs.pr
-        run: gh pr merge ${{ steps.release.outputs.pr }} --auto --rebase
+        if: steps.release.outputs.pr_number != ''
+        run: gh pr merge ${{ steps.release.outputs.pr_number }} --auto --rebase
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

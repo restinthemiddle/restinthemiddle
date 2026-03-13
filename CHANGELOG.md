@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.5](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.4...v2.3.5) (2026-03-13)
+
+
+### Bug Fixes
+
+* **ci:** wrong input for gh pr merge ([8cb4818](https://github.com/restinthemiddle/restinthemiddle/commit/8cb4818a26b6bf10ff23ea9e7e23bf218c11ab24))
+* **deps:** update module golang.org/x/text to v0.35.0 ([32a1dc7](https://github.com/restinthemiddle/restinthemiddle/commit/32a1dc797c786c8d9260a3206e8cea7eea7c49fd))
+
 ## [2.3.4](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.3...v2.3.4) (2026-02-11)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.7](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.6...v2.3.7) (2026-04-28)
+
+
+### Bug Fixes
+
+* **deps:** update module go.uber.org/zap to v1.28.0 ([23f089c](https://github.com/restinthemiddle/restinthemiddle/commit/23f089cb6439a8e3be418816afc081e8e869d038))
+
 ## [2.3.6](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.5...v2.3.6) (2026-04-20)
 
 

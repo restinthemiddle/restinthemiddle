@@ -8,6 +8,12 @@ import (
 	"github.com/restinthemiddle/restinthemiddle/internal/version"
 )
 
+const (
+	labelTargetHost = "target_host"
+	labelMethod     = "method"
+	labelStatusCode = "status_code"
+)
+
 var (
 	// BuildInfo exposes version, build date, and git commit.
 	BuildInfo = promauto.NewGaugeVec(
@@ -32,7 +38,7 @@ var (
 			Name: "http_upstream_errors_total",
 			Help: "Total number of upstream connection errors",
 		},
-		[]string{"target_host", "error_type"},
+		[]string{labelTargetHost, "error_type"},
 	)
 
 	// HTTPProxyTimeoutsTotal counts proxy timeouts by type.
@@ -41,7 +47,7 @@ var (
 			Name: "http_proxy_timeouts_total",
 			Help: "Total number of proxy timeouts",
 		},
-		[]string{"timeout_type", "target_host"},
+		[]string{"timeout_type", labelTargetHost},
 	)
 
 	// HTTPProxyFailuresTotal counts failed proxy attempts.
@@ -50,7 +56,7 @@ var (
 			Name: "http_proxy_failures_total",
 			Help: "Total number of failed proxy attempts",
 		},
-		[]string{"target_host", "reason"},
+		[]string{labelTargetHost, "reason"},
 	)
 
 	// HTTPRequestsTotal counts total HTTP requests proxied.
@@ -59,7 +65,7 @@ var (
 			Name: "http_requests_total",
 			Help: "Total number of HTTP requests proxied",
 		},
-		[]string{"method", "status_code", "target_host"},
+		[]string{labelMethod, labelStatusCode, labelTargetHost},
 	)
 
 	// HTTPRequestDuration measures request duration in seconds.
@@ -69,7 +75,7 @@ var (
 			Help:    "HTTP request duration in seconds",
 			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 		},
-		[]string{"method", "status_code", "target_host"},
+		[]string{labelMethod, labelStatusCode, labelTargetHost},
 	)
 
 	// HTTPRequestSizeBytes measures request size in bytes.
@@ -79,7 +85,7 @@ var (
 			Help:    "HTTP request size in bytes",
 			Buckets: []float64{100, 1000, 10000, 100000, 1000000, 10000000},
 		},
-		[]string{"method", "target_host"},
+		[]string{labelMethod, labelTargetHost},
 	)
 
 	// HTTPResponseSizeBytes measures response size in bytes.
@@ -89,7 +95,7 @@ var (
 			Help:    "HTTP response size in bytes",
 			Buckets: []float64{100, 1000, 10000, 100000, 1000000, 10000000},
 		},
-		[]string{"method", "status_code", "target_host"},
+		[]string{labelMethod, labelStatusCode, labelTargetHost},
 	)
 
 	// HTTPRequestsInFlight tracks active in-flight requests.
@@ -98,7 +104,7 @@ var (
 			Name: "http_requests_in_flight",
 			Help: "Number of HTTP requests currently being processed",
 		},
-		[]string{"target_host"},
+		[]string{labelTargetHost},
 	)
 
 	startTime time.Time

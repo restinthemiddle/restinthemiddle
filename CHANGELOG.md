@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.8](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.7...v2.3.8) (2026-06-03)
+
+
+### Bug Fixes
+
+* **deps:** update prometheus/common and x/sys ([9111ec9](https://github.com/restinthemiddle/restinthemiddle/commit/9111ec92c9794e6a77deadb1db3b2b844f4df3c0))
+
 ## [2.3.7](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.6...v2.3.7) (2026-04-28)
 
 

@@ -45,6 +45,17 @@
         "renovate-config"
       ],
       "minimumReleaseAge": "3 days"
+    },
+    {
+      "groupName": "Security updates override (high+critical)",
+      "matchUpdateTypes": [
+        "security"
+      ],
+      "matchSeverities": [
+        "critical",
+        "high"
+      ],
+      "minimumReleaseAge": "0 days"
     }
   ]
 }

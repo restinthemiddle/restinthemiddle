@@ -45,17 +45,15 @@
         "renovate-config"
       ],
       "minimumReleaseAge": "3 days"
-    },
-    {
-      "groupName": "Security updates override (high+critical)",
-      "matchUpdateTypes": [
-        "security"
-      ],
-      "matchSeverities": [
-        "critical",
-        "high"
-      ],
-      "minimumReleaseAge": "0 days"
     }
-  ]
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "groupName": "Security updates override",
+    "minimumReleaseAge": "0 days",
+    "rangeStrategy": "auto",
+    "commitMessageSuffix": "[SECURITY]",
+    "labels": ["security"]
+  }
 }
+

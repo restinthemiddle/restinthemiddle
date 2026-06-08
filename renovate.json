@@ -35,6 +35,16 @@
       "postUpdateOptions": [
         "gomodTidy"
       ]
+    },
+    {
+      "groupName": "Dependency minimum release age",
+      "matchManagers": [
+        "gomod",
+        "github-actions",
+        "dockerfile",
+        "renovate-config"
+      ],
+      "minimumReleaseAge": "3 days"
     }
   ]
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.9](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.8...v2.3.9) (2026-06-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency minimum release age to v0.38.0 ([1e4f73f](https://github.com/restinthemiddle/restinthemiddle/commit/1e4f73fe5b045ec5cb097702bcf6e749ff08a478))
+
 ## [2.3.8](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.7...v2.3.8) (2026-06-03)
 
 

@@ -37,7 +37,7 @@
       ]
     },
     {
-      "groupName": "Dependency minimum release age",
+      "description": "Dependency minimum release age must be 3 days",
       "matchManagers": [
         "gomod",
         "github-actions",

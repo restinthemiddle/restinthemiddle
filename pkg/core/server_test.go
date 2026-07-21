@@ -28,13 +28,12 @@ func TestDefaultHTTPServerTLSInvalidKeyPair(t *testing.T) {
 	}
 
 	targetURL, _ := url.Parse("http://example.com")
-	cfg = &config.TranslatedConfig{
+	server := NewDefaultHTTPServer(&config.TranslatedConfig{
 		TargetURL:   targetURL,
 		TLSCertFile: certFile,
 		TLSKeyFile:  keyFile,
-	}
+	})
 
-	server := &DefaultHTTPServer{}
 	err := server.ListenAndServe("127.0.0.1:0", http.NewServeMux())
 	if err == nil {
 		t.Fatal("expected error for invalid TLS key pair, got nil")
@@ -42,7 +41,7 @@ func TestDefaultHTTPServerTLSInvalidKeyPair(t *testing.T) {
 }
 
 func TestDefaultHTTPServerShutdownWithoutStart(t *testing.T) {
-	server := &DefaultHTTPServer{}
+	server := NewDefaultHTTPServer(&config.TranslatedConfig{})
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Fatalf("Shutdown on never-started server: %v", err)
 	}
@@ -98,24 +97,24 @@ func serveAndRequest(t *testing.T, srv *DefaultHTTPServer, addr string, client *
 
 func TestDefaultHTTPServerServe(t *testing.T) {
 	targetURL, _ := url.Parse("http://example.com")
-	cfg = &config.TranslatedConfig{
+	server := NewDefaultHTTPServer(&config.TranslatedConfig{
 		TargetURL: targetURL,
-	}
+	})
 
 	client := &http.Client{Timeout: 500 * time.Millisecond}
-	serveAndRequest(t, &DefaultHTTPServer{}, freeAddr(t), client, "http")
+	serveAndRequest(t, server, freeAddr(t), client, "http")
 }
 
 func TestDefaultHTTPServerTLSServe(t *testing.T) {
 	certFile, keyFile := testutil.GenerateSelfSignedCert(t)
 
 	targetURL, _ := url.Parse("http://example.com")
-	cfg = &config.TranslatedConfig{
+	server := NewDefaultHTTPServer(&config.TranslatedConfig{
 		TargetURL:     targetURL,
 		TLSCertFile:   certFile,
 		TLSKeyFile:    keyFile,
 		TLSMinVersion: tls.VersionTLS12,
-	}
+	})
 
 	client := &http.Client{
 		Timeout: 500 * time.Millisecond,
@@ -123,5 +122,5 @@ func TestDefaultHTTPServerTLSServe(t *testing.T) {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // self-signed test cert
 		},
 	}
-	serveAndRequest(t, &DefaultHTTPServer{}, freeAddr(t), client, "https")
+	serveAndRequest(t, server, freeAddr(t), client, "https")
 }

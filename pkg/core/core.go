@@ -9,45 +9,61 @@ import (
 	proxy "github.com/restinthemiddle/restinthemiddle/pkg/core/proxy"
 )
 
-var cfg *config.TranslatedConfig
-var wrt Writer
-var proxyServer *proxy.Server
-var server HTTPServer
+// Proxy wires the reverse proxy with its configuration and log writer.
+type Proxy struct {
+	cfg         *config.TranslatedConfig
+	writer      Writer
+	proxyServer *proxy.Server
+}
 
-// Run starts the proxy server.
-func Run(c *config.TranslatedConfig, w Writer, s HTTPServer) {
-	cfg = c
-	wrt = w
-	server = s
-
-	var err error
-	proxyServer, err = proxy.NewServer(cfg)
+// NewProxy creates a Proxy from the given configuration and writer.
+func NewProxy(c *config.TranslatedConfig, w Writer) (*Proxy, error) {
+	proxyServer, err := proxy.NewServer(c)
 	if err != nil {
-		log.Fatalf("Failed to create proxy server: %v", err)
+		return nil, fmt.Errorf("failed to create proxy server: %w", err)
 	}
-	proxyServer.SetModifyResponse(logResponse)
 
+	p := &Proxy{cfg: c, writer: w, proxyServer: proxyServer}
+	proxyServer.SetModifyResponse(p.logResponse)
+
+	return p, nil
+}
+
+// Handler returns the HTTP handler serving the proxy.
+func (p *Proxy) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", handleRequest)
+	mux.HandleFunc("/", p.handleRequest)
+	return mux
+}
 
-	// Set the handler in the server
-	if err := server.ListenAndServe(fmt.Sprintf("%s:%s", cfg.ListenIP, cfg.ListenPort), mux); err != nil {
+func (p *Proxy) handleRequest(response http.ResponseWriter, request *http.Request) {
+	p.proxyServer.ServeHTTP(response, request)
+}
+
+func (p *Proxy) logResponse(response *http.Response) error {
+	if !p.cfg.LoggingEnabled {
+		return nil
+	}
+
+	if p.cfg.ExcludeRegexp != nil && p.cfg.ExcludeRegexp.MatchString(response.Request.URL.Path) {
+		return nil
+	}
+
+	return p.writer.LogResponse(response)
+}
+
+// Run starts the proxy server and terminates the process on failure.
+func Run(c *config.TranslatedConfig, w Writer, s HTTPServer) {
+	if err := run(c, w, s); err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
-func handleRequest(response http.ResponseWriter, request *http.Request) {
-	proxyServer.ServeHTTP(response, request)
-}
-
-func logResponse(response *http.Response) (err error) {
-	if !cfg.LoggingEnabled {
-		return nil
+func run(c *config.TranslatedConfig, w Writer, s HTTPServer) error {
+	p, err := NewProxy(c, w)
+	if err != nil {
+		return err
 	}
 
-	if cfg.ExcludeRegexp != nil && cfg.ExcludeRegexp.MatchString(response.Request.URL.Path) {
-		return nil
-	}
-
-	return wrt.LogResponse(response)
+	return s.ListenAndServe(fmt.Sprintf("%s:%s", c.ListenIP, c.ListenPort), p.Handler())
 }

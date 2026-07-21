@@ -99,7 +99,7 @@ func (a *App) Run() error {
 
 	fmt.Fprintln(a.Writer, "restinthemiddle started.")
 
-	core.Run(translatedConfig, w, &core.DefaultHTTPServer{})
+	core.Run(translatedConfig, w, core.NewDefaultHTTPServer(translatedConfig))
 	return nil
 }
 

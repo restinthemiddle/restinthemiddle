@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -40,42 +41,48 @@ func TestDefaultHTTPServerTLSInvalidKeyPair(t *testing.T) {
 	}
 }
 
-func TestDefaultHTTPServerTLSServe(t *testing.T) {
-	certFile, keyFile := testutil.GenerateSelfSignedCert(t)
+func TestDefaultHTTPServerShutdownWithoutStart(t *testing.T) {
+	server := &DefaultHTTPServer{}
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Fatalf("Shutdown on never-started server: %v", err)
+	}
+}
 
+// freeAddr returns an address that was free at the time of the call.
+// There is a small window in which another process could grab the port.
+func freeAddr(t *testing.T) string {
+	t.Helper()
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("get free port: %v", err)
 	}
 	addr := l.Addr().String()
 	l.Close()
+	return addr
+}
 
-	targetURL, _ := url.Parse("http://example.com")
-	cfg = &config.TranslatedConfig{
-		TargetURL:     targetURL,
-		TLSCertFile:   certFile,
-		TLSKeyFile:    keyFile,
-		TLSMinVersion: tls.VersionTLS12,
-	}
+// serveAndRequest starts srv.ListenAndServe on addr in the background,
+// performs one GET with the given client and shuts the server down.
+func serveAndRequest(t *testing.T, srv *DefaultHTTPServer, addr string, client *http.Client, scheme string) {
+	t.Helper()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	server := &DefaultHTTPServer{}
-	go server.ListenAndServe(addr, mux) //nolint:errcheck
-
-	client := &http.Client{
-		Timeout: 500 * time.Millisecond,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // self-signed test cert
-		},
-	}
+	go srv.ListenAndServe(addr, mux) //nolint:errcheck
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	}()
 
 	var lastErr error
 	for i := 0; i < 30; i++ {
-		resp, err := client.Get(fmt.Sprintf("https://%s/", addr))
+		resp, err := client.Get(fmt.Sprintf("%s://%s/", scheme, addr))
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode != http.StatusOK {
@@ -86,5 +93,35 @@ func TestDefaultHTTPServerTLSServe(t *testing.T) {
 		lastErr = err
 		time.Sleep(100 * time.Millisecond)
 	}
-	t.Fatalf("HTTPS server did not become ready: %v", lastErr)
+	t.Fatalf("server did not become ready: %v", lastErr)
+}
+
+func TestDefaultHTTPServerServe(t *testing.T) {
+	targetURL, _ := url.Parse("http://example.com")
+	cfg = &config.TranslatedConfig{
+		TargetURL: targetURL,
+	}
+
+	client := &http.Client{Timeout: 500 * time.Millisecond}
+	serveAndRequest(t, &DefaultHTTPServer{}, freeAddr(t), client, "http")
+}
+
+func TestDefaultHTTPServerTLSServe(t *testing.T) {
+	certFile, keyFile := testutil.GenerateSelfSignedCert(t)
+
+	targetURL, _ := url.Parse("http://example.com")
+	cfg = &config.TranslatedConfig{
+		TargetURL:     targetURL,
+		TLSCertFile:   certFile,
+		TLSKeyFile:    keyFile,
+		TLSMinVersion: tls.VersionTLS12,
+	}
+
+	client := &http.Client{
+		Timeout: 500 * time.Millisecond,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // self-signed test cert
+		},
+	}
+	serveAndRequest(t, &DefaultHTTPServer{}, freeAddr(t), client, "https")
 }

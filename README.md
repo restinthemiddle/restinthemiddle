@@ -126,6 +126,9 @@ There are several file locations where configuration is being searched for. The 
 | `readHeaderTimeout` (optional)   | `READ_HEADER_TIMEOUT`   | --read-header-timeout   | Read header timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                   | `0` (no timeout)                               |
 | `writeTimeout` (optional)        | `WRITE_TIMEOUT`         | --write-timeout         | Write timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                         | `0` (no timeout)                               |
 | `idleTimeout` (optional)         | `IDLE_TIMEOUT`          | --idle-timeout          | Idle timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                          | `0` (no timeout)                               |
+| `tlsCertFile` (optional)         | `TLS_CERT_FILE`         | --tls-cert-file         | Path to TLS certificate file. See [HTTPS Support](#https-support) below.                                                                                     | `""` (TLS disabled)                            |
+| `tlsKeyFile` (optional)          | `TLS_KEY_FILE`          | --tls-key-file          | Path to TLS private key file. See [HTTPS Support](#https-support) below.                                                                                     | `""` (TLS disabled)                            |
+| `tlsMinVersion` (optional)       | `TLS_MIN_VERSION`       | --tls-min-version       | Minimum TLS version (`1.2` or `1.3`).                                                                                                                        | `1.2`                                          |
 
 **Note:** See the [net/http.Server documentation](https://pkg.go.dev/net/http#Server) for detailed information about the behavior of `ReadTimeout`, `ReadHeaderTimeout`, `WriteTimeout`, and `IdleTimeout`.
 
@@ -229,7 +232,7 @@ loggingEnabled: false
 
 ```shell
 # Set up the proxy
-docker run -it --rm -v ./config.yaml:/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:2
+docker run -it --rm -v ./config.yaml:/etc/restinthemiddle/config.yaml -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against http://www.example.com/home
 curl -i http://127.0.0.1:8000/home
@@ -240,6 +243,55 @@ curl -i http://127.0.0.1:8000/home
 ```shell
 # Set up the proxy
 docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 restinthemiddle --target-host-dsn=http://www.example.com --header=x-app-version:3.0.0
+```
+
+### HTTPS Support
+
+We want to log HTTPS calls against `www.example.com`. We use a self-signed certificate and private key.
+
+If both `tlsCertFile` and `tlsKeyFile` are set, Restinthemiddle itself serves HTTPS. The minimum accepted TLS version
+defaults to 1.2 and can be raised with `tlsMinVersion: "1.3"`.
+
+**Note:** TLS only applies to the proxy itself. The [metrics endpoint](#metrics) always serves plain HTTP — it is meant
+to be scraped from inside the network and should not be exposed publicly.
+
+#### With configuration file
+
+##### config.yaml
+
+```yaml
+targetHostDsn: https://www.example.com
+listenIp: 0.0.0.0
+listenPort: "8443"
+tlsCertFile: ./cert.pem
+tlsKeyFile: ./key.pem
+loggingEnabled: true
+```
+
+```shell
+# Set up the proxy
+docker run -it --rm -v ./config.yaml:/etc/restinthemiddle/config.yaml -v ./cert.pem:/cert.pem -v ./key.pem:/key.pem -p 8443:8443 jdschulze/restinthemiddle:2
+
+# In another terminal window we make the API call against https://www.example.com/home
+curl -i https://127.0.0.1:8443/home --insecure
+```
+
+#### With command line arguments
+
+```shell
+# Set up the proxy
+docker run -it --rm -v $(pwd)/cert.pem:/cert.pem -v $(pwd)/key.pem:/key.pem -p 8443:8443 jdschulze/restinthemiddle:2 restinthemiddle --target-host-dsn=https://www.example.com --listen-port=8443 --tls-cert-file=/cert.pem --tls-key-file=/key.pem
+
+# In another terminal window we make the API call against https://www.example.com/home
+curl -i https://127.0.0.1:8443/home --insecure
+```
+
+#### Generating a self-signed certificate
+
+To use HTTPS, you need a certificate and a private key. You can generate a self-signed one using `openssl`:
+
+```shell
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
 ```
 
 ### Helm Chart for Kubernetes

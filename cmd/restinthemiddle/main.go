@@ -200,6 +200,9 @@ type FlagVars struct {
 	readHeaderTimeout   int
 	writeTimeout        int
 	idleTimeout         int
+	tlsCertFile         string
+	tlsKeyFile          string
+	tlsMinVersion       string
 }
 
 // setupFlags initializes all command line flags.
@@ -230,6 +233,9 @@ func setupFlags() *FlagVars {
 	flag.IntVar(&flagVars.readHeaderTimeout, "read-header-timeout", config.DefaultReadHeaderTimeout, "Read header timeout in seconds")
 	flag.IntVar(&flagVars.writeTimeout, "write-timeout", config.DefaultWriteTimeout, "Write timeout in seconds")
 	flag.IntVar(&flagVars.idleTimeout, "idle-timeout", config.DefaultIdleTimeout, "Idle timeout in seconds")
+	flag.StringVar(&flagVars.tlsCertFile, "tls-cert-file", "", "Path to TLS certificate file")
+	flag.StringVar(&flagVars.tlsKeyFile, "tls-key-file", "", "Path to TLS private key file")
+	flag.StringVar(&flagVars.tlsMinVersion, "tls-min-version", "", "Minimum TLS version (1.2 or 1.3, default 1.2)")
 
 	return flagVars
 }
@@ -254,6 +260,9 @@ func setupViperDefaults(v *viper.Viper) {
 		"readHeaderTimeout":   config.DefaultReadHeaderTimeout,
 		"writeTimeout":        config.DefaultWriteTimeout,
 		"idleTimeout":         config.DefaultIdleTimeout,
+		"tlsCertFile":         "",
+		"tlsKeyFile":          "",
+		"tlsMinVersion":       "",
 	}
 
 	for key, value := range defaults {
@@ -280,6 +289,9 @@ func setupViperEnvBindings(v *viper.Viper) {
 	v.BindEnv("readHeaderTimeout", "READ_HEADER_TIMEOUT")     //nolint:errcheck
 	v.BindEnv("writeTimeout", "WRITE_TIMEOUT")                //nolint:errcheck
 	v.BindEnv("idleTimeout", "IDLE_TIMEOUT")                  //nolint:errcheck
+	v.BindEnv("tlsCertFile", "TLS_CERT_FILE")                 //nolint:errcheck
+	v.BindEnv("tlsKeyFile", "TLS_KEY_FILE")                   //nolint:errcheck
+	v.BindEnv("tlsMinVersion", "TLS_MIN_VERSION")             //nolint:errcheck
 }
 
 // setupConfigPaths sets up configuration file paths for viper.
@@ -355,6 +367,15 @@ func updateConfigFromFlags(cfg *config.SourceConfig, flagVars *FlagVars) {
 	}
 	if flagChanged("idle-timeout") {
 		cfg.IdleTimeout = flagVars.idleTimeout
+	}
+	if flagChanged("tls-cert-file") {
+		cfg.TLSCertFile = flagVars.tlsCertFile
+	}
+	if flagChanged("tls-key-file") {
+		cfg.TLSKeyFile = flagVars.tlsKeyFile
+	}
+	if flagChanged("tls-min-version") {
+		cfg.TLSMinVersion = flagVars.tlsMinVersion
 	}
 }
 

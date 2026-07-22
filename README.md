@@ -4,21 +4,21 @@
 [![codecov](https://codecov.io/gh/restinthemiddle/restinthemiddle/branch/main/graph/badge.svg)](https://codecov.io/gh/restinthemiddle/restinthemiddle)
 ![main](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle)
 
-This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between
-an HTTP client and the respective server you can easily monitor requests and responses.
+This lightweight application acts as an HTTP logging proxy for development and staging environments. Put it between an
+HTTP client and a server to easily monitor requests and responses.
 
 ## Installation
 
 ### Docker (recommended)
 
-Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags) from Docker Hub
+Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags) from Docker Hub:
 
 ```shell
 docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the
-`latest` tag is always the `HEAD` of the `main` branch but this can change without notice anytime.
+Pinning at least the major version is highly recommended. Use `latest` at your own risk: currently the `latest` tag
+tracks the `HEAD` of the `main` branch, but this may change without notice.
 
 ### Build the Docker image yourself
 
@@ -55,8 +55,8 @@ developed for.
 +-----------------+         +-----------------+         +-----------------+
 ```
 
-But there are cases where it makes sense to place it between your browser and the application. For example, you could
-want to add custom headers to every request (kind of off-label use, because no logging is needed):
+But there are cases where it makes sense to place it between your browser and the application. For example, you might
+want to add custom headers to every request (an off-label use - no logging needed):
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -66,15 +66,14 @@ want to add custom headers to every request (kind of off-label use, because no l
 +-----------------+         +-----------------+         +-----------------+
 ```
 
-You may as well use Restinthemiddle as an alternative entrypoint for your application.
+You can also use Restinthemiddle as an alternative entrypoint for your application.
 
 ### Configuration
 
 Configuration is handled by [spf13/viper](https://pkg.go.dev/github.com/spf13/viper).
 
 Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via
-environment variables - almost!
-Headers have to be set via command line arguments or the configuration file.
+environment variables - almost: headers have to be set via command line arguments or the configuration file.
 
 The ascending order of precedence (last wins) is:
 
@@ -86,7 +85,7 @@ The ascending order of precedence (last wins) is:
 Example configuration file:
 
 ```yaml
-targetHostDsn: www.example.com
+targetHostDsn: https://www.example.com
 listenIp: 0.0.0.0
 listenPort: "8000"
 headers:
@@ -104,8 +103,7 @@ writeTimeout: 30
 idleTimeout: 120
 ```
 
-There are several file locations where configuration is being searched for. The ascending order of precedence (last
-wins) is:
+Configuration files are searched for in several locations. The ascending order of precedence (last wins) is:
 
 * `/etc/restinthemiddle/config.yaml`
 * `$HOME/.restinthemiddle/config.yaml`
@@ -115,7 +113,7 @@ wins) is:
 
 | Configuration key                | Environment variable    | Command line flag       | Description                                                                                                                                                  | Default value                                  |
 |----------------------------------|-------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `targetHostDsn` (required)       | `TARGET_HOST_DSN`       | --target-host-dsn       | The DSN of the target host in the form `schema://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
+| `targetHostDsn` (required)       | `TARGET_HOST_DSN`       | --target-host-dsn       | The DSN of the target host in the form `scheme://username:password@hostname:port/basepath?query`. Find a [detailed description](#the-target-host-dsn) below. | -                                              |
 | `listenIp` (optional)            | `LISTEN_IP`             | --listen-ip             | The IP Restinthemiddle is bound to.                                                                                                                          | `0.0.0.0`                                      |
 | `listenPort` (optional)          | `LISTEN_PORT`           | --listen-port           | The port Restinthemiddle is bound to.                                                                                                                        | `8000`                                         |
 | `metricsEnabled` (optional)      | `METRICS_ENABLED`       | --metrics-enabled       | Enable Prometheus metrics endpoint.                                                                                                                          | `true`                                         |
@@ -123,11 +121,11 @@ wins) is:
 | `headers` (optional)             | -                       | --header                | A dictionary of HTTP headers.                                                                                                                                | `User-Agent: Rest in the middle logging proxy` |
 | `loggingEnabled` (optional)      | `LOGGING_ENABLED`       | --logging-enabled       | Enable logging.                                                                                                                                              | `true`                                         |
 | `setRequestId` (optional)        | `SET_REQUEST_ID`        | --set-request-id        | If not already present in the request, add an `X-Request-Id` header with a version 4 UUID.                                                                   | `false`                                        |
-| `exclude` (optional)             | `EXCLUDE`               | --exclude               | If the given URL path matches this Regular Expression this request+response will not be logged.                                                              | `""`                                           |
+| `exclude` (optional)             | `EXCLUDE`               | --exclude               | If the request URL path matches this regular expression, the request and response are not logged.                                                            | `""`                                           |
 | `logPostBody` (optional)         | `LOG_POST_BODY`         | --log-post-body         | Log the request's body.                                                                                                                                      | `true`                                         |
 | `logResponseBody` (optional)     | `LOG_RESPONSE_BODY`     | --log-response-body     | Log the response's body.                                                                                                                                     | `true`                                         |
-| `excludePostBody` (optional)     | `EXCLUDE_POST_BODY`     | --exclude-post-body     | If the given URL path matches this Regular Expression the request body (post) is set empty.                                                                  | `""`                                           |
-| `excludeResponseBody` (optional) | `EXCLUDE_RESPONSE_BODY` | --exclude-response-body | If the given URL path matches this Regular Expression the response body is set emtpy.                                                                        | `""`                                           |
+| `excludePostBody` (optional)     | `EXCLUDE_POST_BODY`     | --exclude-post-body     | If the request URL path matches this regular expression, the request body is not logged.                                                                     | `""`                                           |
+| `excludeResponseBody` (optional) | `EXCLUDE_RESPONSE_BODY` | --exclude-response-body | If the request URL path matches this regular expression, the response body is not logged.                                                                    | `""`                                           |
 | `readTimeout` (optional)         | `READ_TIMEOUT`          | --read-timeout          | Read timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                          | `0` (no timeout)                               |
 | `readHeaderTimeout` (optional)   | `READ_HEADER_TIMEOUT`   | --read-header-timeout   | Read header timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                   | `0` (no timeout)                               |
 | `writeTimeout` (optional)        | `WRITE_TIMEOUT`         | --write-timeout         | Write timeout in seconds. See [Timeout Configuration](#timeout-configuration) below.                                                                         | `0` (no timeout)                               |
@@ -181,21 +179,22 @@ idleTimeout: 120
 
 ##### The target host DSN
 
-`schema://username:password@hostname:port/basepath?query`
+`scheme://username:password@hostname:port/basepath?query`
 
-* `schema` (required) is `http` or `https`
-* `username:password@` is optional and will be evaluated only if both values are set.
+* `scheme` (required) is `http` or `https`.
+* `username:password@` is optional and is evaluated only if both values are set.
 * `hostname` (required)
 * `port` is optional. Standard ports are `80` (http) and `443` (https).
-* `basepath` is optional. Will be prefixed to any request URL path pointed at Restinthemiddle. See examples section.
-* `query` is optional. If set, `query` will precede the actual request's query.
+* `basepath` is optional. It is prefixed to every request path sent to Restinthemiddle. See the
+  [Examples](#examples) section.
+* `query` is optional. If set, it precedes the actual request's query string.
 
 ##### Headers
 
 If a header is defined multiple times, the last assignment wins.
 
-If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g.
-a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the _target host DSN_ string:
+If you need HTTP Basic Authentication **and** another `Authorization` header at the same time (e.g. a JWT), put the
+Basic Auth credentials into the _target host DSN_ string:
 
 ```shell
 docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8000:8000 jdschulze/restinthemiddle:2 --header="Authorization:Bearer ABCD1234"
@@ -224,7 +223,7 @@ Note that the base path defined in `TARGET_HOST_DSN` prefixes any subsequent cal
 
 ```shell
 # Set up the proxy
-docker run -it --rm -e TARGET_HOST_DSN=https://user:pass@www.example.com:4430/api?start=1577833200 -p 8000:8000 jdschulze/restinthemiddle:2
+docker run -it --rm -e TARGET_HOST_DSN='https://user:pass@www.example.com:4430/api?start=1577833200' -p 8000:8000 jdschulze/restinthemiddle:2
 
 # In another terminal window we make the API call against https://user:pass@www.example.com:4430/api/visitors?start=1577833200
 curl -i http://127.0.0.1:8000/visitors
@@ -232,8 +231,8 @@ curl -i http://127.0.0.1:8000/visitors
 
 ### Setting/changing headers
 
-We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a
-custom header `X-App-Version: 3.0.0`. No logging shall take place.
+We want to add a custom header `X-App-Version: 3.0.0` to every request against `www.example.com` over an insecure
+connection. Logging is disabled.
 
 #### With configuration file
 
@@ -263,12 +262,13 @@ docker run -it --rm -p 8000:8000 jdschulze/restinthemiddle:2 restinthemiddle --t
 
 ### HTTPS Support
 
-We want to log HTTPS calls against `www.example.com`. We use a self-signed certificate and private key.
-
 If both `tlsCertFile` and `tlsKeyFile` are set, Restinthemiddle itself serves HTTPS. The minimum accepted TLS version
 defaults to 1.2 and can be raised with `tlsMinVersion: "1.3"`.
 
-**Note:** TLS only applies to the proxy itself. The [metrics endpoint](#metrics) always serves plain HTTP — it is meant
+In this example we want to log calls against `www.example.com` while the proxy serves HTTPS with a self-signed
+certificate and private key.
+
+**Note:** TLS only applies to the proxy itself. The [metrics endpoint](#metrics) always serves plain HTTP - it is meant
 to be scraped from inside the network and should not be exposed publicly.
 
 #### With configuration file
@@ -279,8 +279,8 @@ to be scraped from inside the network and should not be exposed publicly.
 targetHostDsn: https://www.example.com
 listenIp: 0.0.0.0
 listenPort: "8443"
-tlsCertFile: ./cert.pem
-tlsKeyFile: ./key.pem
+tlsCertFile: /cert.pem
+tlsKeyFile: /key.pem
 loggingEnabled: true
 ```
 
@@ -318,7 +318,7 @@ queries.
 
 ### Helm Chart for Kubernetes
 
-There is a Helm Chart for Restinthemiddle
+A Helm chart for Restinthemiddle is available
 at [https://github.com/restinthemiddle/helm](https://github.com/restinthemiddle/helm). You may want to add the
 Restinthemiddle Helm repository:
 

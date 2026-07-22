@@ -4,7 +4,8 @@
 [![codecov](https://codecov.io/gh/restinthemiddle/restinthemiddle/branch/main/graph/badge.svg)](https://codecov.io/gh/restinthemiddle/restinthemiddle)
 ![main](https://img.shields.io/github/v/tag/restinthemiddle/restinthemiddle)
 
-This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between an HTTP client and the respective server you can easily monitor requests and responses.
+This lightweight application acts as a HTTP logging proxy for developing and staging environments. If you put it between
+an HTTP client and the respective server you can easily monitor requests and responses.
 
 ## Installation
 
@@ -16,7 +17,8 @@ Pull the [Docker image](https://hub.docker.com/r/jdschulze/restinthemiddle/tags)
 docker pull jdschulze/restinthemiddle:2
 ```
 
-Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the `latest` tag is always the `HEAD` of the `main` branch but this can change without notice anytime.
+Pinning the version to (at least) the major version is highly recommended. Use `latest` at your own risk. ATM the
+`latest` tag is always the `HEAD` of the `main` branch but this can change without notice anytime.
 
 ### Build the Docker image yourself
 
@@ -42,7 +44,8 @@ make build
 
 ## Usage
 
-Typically, you place the logging proxy between an application and an API. This is the use case Restinthemiddle was developed for.
+Typically, you place the logging proxy between an application and an API. This is the use case Restinthemiddle was
+developed for.
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -52,7 +55,8 @@ Typically, you place the logging proxy between an application and an API. This i
 +-----------------+         +-----------------+         +-----------------+
 ```
 
-But there are cases where it makes sense to place it between your browser and the application. For example, you could want to add custom headers to every request (kind of off-label use, because no logging is needed):
+But there are cases where it makes sense to place it between your browser and the application. For example, you could
+want to add custom headers to every request (kind of off-label use, because no logging is needed):
 
 ```text
 +-----------------+         +-----------------+         +-----------------+
@@ -68,7 +72,8 @@ You may as well use Restinthemiddle as an alternative entrypoint for your applic
 
 Configuration is handled by [spf13/viper](https://pkg.go.dev/github.com/spf13/viper).
 
-Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via environment variables - almost!
+Restinthemiddle is intended for use in a containerized environment. Therefore it is configurable entirely via
+environment variables - almost!
 Headers have to be set via command line arguments or the configuration file.
 
 The ascending order of precedence (last wins) is:
@@ -85,7 +90,7 @@ targetHostDsn: www.example.com
 listenIp: 0.0.0.0
 listenPort: "8000"
 headers:
-    X-My-Header: myexamplevalue
+  X-My-Header: myexamplevalue
 loggingEnabled: true
 setRequestId: false
 exclude: ""
@@ -99,7 +104,8 @@ writeTimeout: 30
 idleTimeout: 120
 ```
 
-There are several file locations where configuration is being searched for. The ascending order of precedence (last wins) is:
+There are several file locations where configuration is being searched for. The ascending order of precedence (last
+wins) is:
 
 * `/etc/restinthemiddle/config.yaml`
 * `$HOME/.restinthemiddle/config.yaml`
@@ -130,11 +136,13 @@ There are several file locations where configuration is being searched for. The 
 | `tlsKeyFile` (optional)          | `TLS_KEY_FILE`          | --tls-key-file          | Path to TLS private key file. See [HTTPS Support](#https-support) below.                                                                                     | `""` (TLS disabled)                            |
 | `tlsMinVersion` (optional)       | `TLS_MIN_VERSION`       | --tls-min-version       | Minimum TLS version (`1.2` or `1.3`).                                                                                                                        | `1.2`                                          |
 
-**Note:** See the [net/http.Server documentation](https://pkg.go.dev/net/http#Server) for detailed information about the behavior of `ReadTimeout`, `ReadHeaderTimeout`, `WriteTimeout`, and `IdleTimeout`.
+**Note:** See the [net/http.Server documentation](https://pkg.go.dev/net/http#Server) for detailed information about the
+behavior of `ReadTimeout`, `ReadHeaderTimeout`, `WriteTimeout`, and `IdleTimeout`.
 
 ##### Timeout Configuration
 
-**Important:** The default timeout values are `0` (no timeout), which matches the behavior of Go's `net/http.Server`. While this provides maximum flexibility, it can expose your service to resource exhaustion and security vulnerabilities.
+**Important:** The default timeout values are `0` (no timeout), which matches the behavior of Go's `net/http.Server`.
+While this provides maximum flexibility, it can expose your service to resource exhaustion and security vulnerabilities.
 
 **Recommended production values:**
 
@@ -147,10 +155,15 @@ idleTimeout: 120
 
 **Why you should configure timeouts:**
 
-* **ReadHeaderTimeout (recommended: 10s)**: Protects against [Slowloris attacks](https://en.wikipedia.org/wiki/Slowloris_(computer_security)) where clients send headers very slowly to exhaust server resources.
-* **ReadTimeout (recommended: 30s)**: Prevents slow clients from holding connections indefinitely while sending request bodies.
-* **WriteTimeout (recommended: 30s)**: Ensures responses are sent in a reasonable timeframe, preventing resource leaks from slow or stalled connections.
-* **IdleTimeout (recommended: 120s)**: Controls how long keep-alive connections remain open between requests, balancing connection reuse with resource management.
+* **ReadHeaderTimeout (recommended: 10s)**: Protects
+  against [Slowloris attacks](https://en.wikipedia.org/wiki/Slowloris_(computer_security)) where clients send headers
+  very slowly to exhaust server resources.
+* **ReadTimeout (recommended: 30s)**: Prevents slow clients from holding connections indefinitely while sending request
+  bodies.
+* **WriteTimeout (recommended: 30s)**: Ensures responses are sent in a reasonable timeframe, preventing resource leaks
+  from slow or stalled connections.
+* **IdleTimeout (recommended: 120s)**: Controls how long keep-alive connections remain open between requests, balancing
+  connection reuse with resource management.
 
 **Without explicit timeouts:**
 
@@ -181,7 +194,8 @@ idleTimeout: 120
 
 If a header is defined multiple times, the last assignment wins.
 
-If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g. a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the _target host DSN_ string:
+If you need to make a HTTP Basic Authentication **and** need to send another Authorization header at the same time (e.g.
+a JWT) we have got you covered. Just put the HTTP Basic Auth credentials into the _target host DSN_ string:
 
 ```shell
 docker run -it --rm -e TARGET_HOST_DSN=http://user:password@www.example.com -p 8000:8000 jdschulze/restinthemiddle:2 --header="Authorization:Bearer ABCD1234"
@@ -203,7 +217,8 @@ curl -i http://127.0.0.1:8000/api/visitors
 
 ### Advanced
 
-We want to log HTTP calls against `www.example.com:4430` over a TLS connection (`https://…`). The API is protected by HTTP basic auth (username: `user`; password: `pass`). The base path always starts with `api/`.
+We want to log HTTP calls against `www.example.com:4430` over a TLS connection (`https://…`). The API is protected by
+HTTP basic auth (username: `user`; password: `pass`). The base path always starts with `api/`.
 
 Note that the base path defined in `TARGET_HOST_DSN` prefixes any subsequent calls!
 
@@ -217,7 +232,8 @@ curl -i http://127.0.0.1:8000/visitors
 
 ### Setting/changing headers
 
-We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a custom header `X-App-Version: 3.0.0`. No logging shall take place.
+We want to log HTTP calls against `www.example.com` over an insecure connection. Every request has to be enhanced with a
+custom header `X-App-Version: 3.0.0`. No logging shall take place.
 
 #### With configuration file
 
@@ -226,7 +242,7 @@ We want to log HTTP calls against `www.example.com` over an insecure connection.
 ```yaml
 targetHostDsn: http://www.example.com
 headers:
-    X-App-Version: '3.0.0'
+  X-App-Version: '3.0.0'
 loggingEnabled: false
 ```
 
@@ -294,16 +310,19 @@ To use HTTPS, you need a certificate and a private key. You can generate a self-
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
 ```
 
+### Metrics
+
+Restinthemiddle exposes Prometheus metrics on a separate HTTP endpoint for monitoring proxy performance and health.
+See [METRICS.md](./METRICS.md) for detailed documentation on available metrics, configuration options, and example
+queries.
+
 ### Helm Chart for Kubernetes
 
-There is a Helm Chart for Restinthemiddle at [https://github.com/restinthemiddle/helm](https://github.com/restinthemiddle/helm).
-You may want to add the Restinthemiddle Helm repository:
+There is a Helm Chart for Restinthemiddle
+at [https://github.com/restinthemiddle/helm](https://github.com/restinthemiddle/helm). You may want to add the
+Restinthemiddle Helm repository:
 
 ```shell
 helm repo add restinthemiddle https://restinthemiddle.github.io/helm
 helm repo update
 ```
-
-## Metrics
-
-Restinthemiddle exposes Prometheus metrics on a separate HTTP endpoint for monitoring proxy performance and health. See [METRICS.md](./METRICS.md) for detailed documentation on available metrics, configuration options, and example queries.

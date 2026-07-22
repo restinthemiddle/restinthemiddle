@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -84,6 +85,26 @@ func TestRun(t *testing.T) {
 	}
 }
 
+// TestRunFatalOnError verifies the error is routed into logFatalf. In
+// production logFatalf is log.Fatalf and terminates the process; with the
+// test double Run returns normally, so process exit itself is not asserted
+// here.
+func TestRunFatalOnError(t *testing.T) {
+	oldFatalf := logFatalf
+	defer func() { logFatalf = oldFatalf }()
+
+	var fatalMsg string
+	logFatalf = func(format string, v ...interface{}) {
+		fatalMsg = fmt.Sprintf(format, v...)
+	}
+
+	Run(testConfig(), &MockWriter{}, &MockHTTPServerWithError{})
+
+	if !strings.Contains(fatalMsg, "mock server error") {
+		t.Errorf("Expected fatal message to contain 'mock server error', got: %q", fatalMsg)
+	}
+}
+
 func TestNewProxy(t *testing.T) {
 	cfg := testConfig()
 	mockWriter := &MockWriter{}
@@ -118,7 +139,16 @@ func TestNewProxyWithProxyCreationError(t *testing.T) {
 }
 
 func TestHandleRequest(t *testing.T) {
-	p, err := NewProxy(testConfig(), &MockWriter{})
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Backend", "hit")
+		fmt.Fprint(w, "backend response")
+	}))
+	defer backend.Close()
+
+	cfg := testConfig()
+	cfg.TargetURL, _ = url.Parse(backend.URL)
+
+	p, err := NewProxy(cfg, &MockWriter{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -128,16 +158,29 @@ func TestHandleRequest(t *testing.T) {
 
 	p.Handler().ServeHTTP(w, req)
 
-	// The handler delegates to proxyServer.ServeHTTP. The upstream host is
-	// not reachable in tests; we only verify the handler completes.
-	if w.Code == 0 {
-		t.Log("No response code set, which is expected in this test setup")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if w.Header().Get("X-Backend") != "hit" {
+		t.Error("response was not proxied to the backend")
+	}
+	if w.Body.String() != "backend response" {
+		t.Errorf("expected backend body, got %q", w.Body.String())
 	}
 }
 
 // TestHandleRequestWithDifferentMethods tests the handler with various HTTP methods.
 func TestHandleRequestWithDifferentMethods(t *testing.T) {
-	p, err := NewProxy(testConfig(), &MockWriter{})
+	var seenMethod string
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenMethod = r.Method
+	}))
+	defer backend.Close()
+
+	cfg := testConfig()
+	cfg.TargetURL, _ = url.Parse(backend.URL)
+
+	p, err := NewProxy(cfg, &MockWriter{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -151,7 +194,13 @@ func TestHandleRequestWithDifferentMethods(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			handler.ServeHTTP(w, req)
-			// The handler should complete without panic for all methods.
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", w.Code)
+			}
+			if seenMethod != method {
+				t.Errorf("backend saw method %s, want %s", seenMethod, method)
+			}
 		})
 	}
 }

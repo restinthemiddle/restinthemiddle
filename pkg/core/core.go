@@ -52,10 +52,13 @@ func (p *Proxy) logResponse(response *http.Response) error {
 	return p.writer.LogResponse(response)
 }
 
+// logFatalf is swappable in tests; log.Fatalf would kill the test process.
+var logFatalf = log.Fatalf
+
 // Run starts the proxy server and terminates the process on failure.
 func Run(c *config.TranslatedConfig, w Writer, s HTTPServer) {
 	if err := run(c, w, s); err != nil {
-		log.Fatalf("%v", err)
+		logFatalf("%v", err)
 	}
 }
 

@@ -28,6 +28,7 @@ type App struct {
 	LoggerFactory LoggerFactory
 	Writer        io.Writer
 	Args          []string
+	NewServer     func(*config.TranslatedConfig) core.HTTPServer
 }
 
 // ConfigLoader defines the interface for loading configuration.
@@ -99,8 +100,19 @@ func (a *App) Run() error {
 
 	fmt.Fprintln(a.Writer, "restinthemiddle started.")
 
-	core.Run(translatedConfig, w, core.NewDefaultHTTPServer(translatedConfig))
+	core.Run(translatedConfig, w, a.serverFactory()(translatedConfig))
 	return nil
+}
+
+// serverFactory returns the configured NewServer factory, falling back to
+// the default HTTP server so a zero-value App cannot panic.
+func (a *App) serverFactory() func(*config.TranslatedConfig) core.HTTPServer {
+	if a.NewServer != nil {
+		return a.NewServer
+	}
+	return func(c *config.TranslatedConfig) core.HTTPServer {
+		return core.NewDefaultHTTPServer(c)
+	}
 }
 
 // CreateLogger creates a production logger with caller disabled.

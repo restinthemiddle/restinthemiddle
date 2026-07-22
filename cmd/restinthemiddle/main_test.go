@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"errors"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/restinthemiddle/restinthemiddle/pkg/core"
 	config "github.com/restinthemiddle/restinthemiddle/pkg/core/config"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -52,48 +55,49 @@ func (m *MockLoggerFactory) CreateLogger() (*zap.Logger, error) {
 	return m.logger, m.err
 }
 
+type MockHTTPServer struct {
+	addr string
+}
+
+func (m *MockHTTPServer) ListenAndServe(addr string, handler http.Handler) error {
+	m.addr = addr
+	return nil
+}
+
 func TestApp_Run_Success(t *testing.T) {
-	// Create a mock config
+	targetURL, err := url.Parse("http://example.com")
+	if err != nil {
+		t.Fatalf("Failed to parse target URL: %v", err)
+	}
+
 	mockConfig := &config.TranslatedConfig{
+		TargetURL:  targetURL,
 		ListenIP:   testListenIP,
 		ListenPort: "8080",
 	}
 
-	// Create a mock logger
-	mockLogger := zap.NewNop()
+	var output bytes.Buffer
+	mockServer := &MockHTTPServer{}
 
 	app := &App{
 		ConfigLoader:  &MockConfigLoader{config: mockConfig},
-		LoggerFactory: &MockLoggerFactory{logger: mockLogger},
+		LoggerFactory: &MockLoggerFactory{logger: zap.NewNop()},
+		Writer:        &output,
 		Args:          []string{"test-app"},
+		NewServer:     func(*config.TranslatedConfig) core.HTTPServer { return mockServer },
 	}
 
-	// Test the setup parts that we can test without starting the server
-	// We test that config and logger are loaded correctly
-	cfg, err := app.ConfigLoader.Load(app.Args)
-	if err != nil {
-		t.Fatalf("Expected no error from config loader, got: %v", err)
+	if err := app.Run(); err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if cfg.ListenIP != testListenIP {
-		t.Errorf("Expected ListenIP to be '%s', got: %s", testListenIP, cfg.ListenIP)
+	if !strings.Contains(output.String(), "restinthemiddle started.") {
+		t.Errorf("Expected startup message, got: %s", output.String())
 	}
 
-	if cfg.ListenPort != "8080" {
-		t.Errorf("Expected ListenPort to be '8080', got: %s", cfg.ListenPort)
+	if mockServer.addr != testListenIP+":8080" {
+		t.Errorf("Expected server address '%s:8080', got: %s", testListenIP, mockServer.addr)
 	}
-
-	logger, err := app.LoggerFactory.CreateLogger()
-	if err != nil {
-		t.Fatalf("Expected no error from logger factory, got: %v", err)
-	}
-
-	if logger == nil {
-		t.Error("Expected logger to be created")
-	}
-
-	// Note: We can't test core.Run() without starting an actual server
-	// This would be better tested with a mock HTTP server interface
 }
 
 func TestApp_Run_ConfigError(t *testing.T) {
@@ -182,6 +186,26 @@ func TestNewApp(t *testing.T) {
 
 	if _, ok := app.LoggerFactory.(*DefaultLoggerFactory); !ok {
 		t.Error("Expected DefaultLoggerFactory")
+	}
+}
+
+func TestApp_ServerFactory(t *testing.T) {
+	app := &App{}
+
+	factory := app.serverFactory()
+	if factory == nil {
+		t.Fatal("Expected fallback factory for zero-value App")
+	}
+
+	if _, ok := factory(&config.TranslatedConfig{}).(*core.DefaultHTTPServer); !ok {
+		t.Error("Expected fallback factory to return a *core.DefaultHTTPServer")
+	}
+
+	mockServer := &MockHTTPServer{}
+	app.NewServer = func(*config.TranslatedConfig) core.HTTPServer { return mockServer }
+
+	if got := app.serverFactory()(&config.TranslatedConfig{}); got != core.HTTPServer(mockServer) {
+		t.Error("Expected configured NewServer factory to be used")
 	}
 }
 
@@ -463,6 +487,9 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 		"--read-header-timeout", "10",
 		"--write-timeout", "60",
 		"--idle-timeout", "300",
+		"--tls-cert-file", "/path/to/cert.pem",
+		"--tls-key-file", "/path/to/key.pem",
+		"--tls-min-version", "1.3",
 	}
 	if err := flag.CommandLine.Parse(args); err != nil {
 		t.Fatalf("Failed to parse flags: %v", err)
@@ -534,6 +561,18 @@ func TestUpdateConfigFromFlags(t *testing.T) {
 
 	if cfg.IdleTimeout != 300 {
 		t.Errorf("Expected IdleTimeout to be 300, got: %d", cfg.IdleTimeout)
+	}
+
+	if cfg.TLSCertFile != "/path/to/cert.pem" {
+		t.Errorf("Expected TLSCertFile to be '/path/to/cert.pem', got: %s", cfg.TLSCertFile)
+	}
+
+	if cfg.TLSKeyFile != "/path/to/key.pem" {
+		t.Errorf("Expected TLSKeyFile to be '/path/to/key.pem', got: %s", cfg.TLSKeyFile)
+	}
+
+	if cfg.TLSMinVersion != "1.3" {
+		t.Errorf("Expected TLSMinVersion to be '1.3', got: %s", cfg.TLSMinVersion)
 	}
 }
 

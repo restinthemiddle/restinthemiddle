@@ -2,12 +2,17 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -97,6 +102,140 @@ func TestApp_Run_Success(t *testing.T) {
 
 	if mockServer.addr != testListenIP+":8080" {
 		t.Errorf("Expected server address '%s:8080', got: %s", testListenIP, mockServer.addr)
+	}
+}
+
+func TestStartMetricsServer(t *testing.T) {
+	listener, err := net.Listen("tcp", testListenIP+":0")
+	if err != nil {
+		t.Fatalf("Failed to reserve port: %v", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close() //nolint:errcheck
+
+	cfg := &config.TranslatedConfig{
+		ListenIP:    testListenIP,
+		MetricsPort: fmt.Sprintf("%d", port),
+	}
+
+	var output bytes.Buffer
+	server := startMetricsServer(cfg, &output)
+	defer server.Shutdown(context.Background()) //nolint:errcheck
+
+	if !strings.Contains(output.String(), "Metrics server listening on") {
+		t.Errorf("Expected startup message, got: %s", output.String())
+	}
+
+	url := fmt.Sprintf("http://%s:%d/metrics", testListenIP, port)
+	var resp *http.Response
+	for i := 0; i < 50; i++ {
+		resp, err = http.Get(url) //nolint:gosec,noctx
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("Metrics endpoint never became reachable: %v", err)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got: %d", resp.StatusCode)
+	}
+
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Errorf("Shutdown failed: %v", err)
+	}
+}
+
+// syncBuffer is a goroutine-safe buffer for capturing log output written
+// from the metrics server goroutine.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func TestStartMetricsServer_ListenError(t *testing.T) {
+	listener, err := net.Listen("tcp", testListenIP+":0")
+	if err != nil {
+		t.Fatalf("Failed to occupy port: %v", err)
+	}
+	defer listener.Close() //nolint:errcheck
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	logBuf := &syncBuffer{}
+	log.SetOutput(logBuf)
+	defer log.SetOutput(os.Stderr)
+
+	cfg := &config.TranslatedConfig{
+		ListenIP:    testListenIP,
+		MetricsPort: fmt.Sprintf("%d", port),
+	}
+
+	var output bytes.Buffer
+	server := startMetricsServer(cfg, &output)
+	defer server.Shutdown(context.Background()) //nolint:errcheck
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if strings.Contains(logBuf.String(), "Metrics server error") {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("Expected listen error to be logged, got: %q", logBuf.String())
+}
+
+func TestApp_Run_MetricsEnabled(t *testing.T) {
+	targetURL, err := url.Parse("http://example.com")
+	if err != nil {
+		t.Fatalf("Failed to parse target URL: %v", err)
+	}
+
+	listener, err := net.Listen("tcp", testListenIP+":0")
+	if err != nil {
+		t.Fatalf("Failed to reserve port: %v", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close() //nolint:errcheck
+
+	mockConfig := &config.TranslatedConfig{
+		TargetURL:      targetURL,
+		ListenIP:       testListenIP,
+		ListenPort:     "8080",
+		MetricsEnabled: true,
+		MetricsPort:    fmt.Sprintf("%d", port),
+	}
+
+	var output bytes.Buffer
+
+	app := &App{
+		ConfigLoader:  &MockConfigLoader{config: mockConfig},
+		LoggerFactory: &MockLoggerFactory{logger: zap.NewNop()},
+		Writer:        &output,
+		Args:          []string{"test-app"},
+		NewServer:     func(*config.TranslatedConfig) core.HTTPServer { return &MockHTTPServer{} },
+	}
+
+	if err := app.Run(); err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if !strings.Contains(output.String(), "Metrics server listening on") {
+		t.Errorf("Expected metrics startup message, got: %s", output.String())
 	}
 }
 
@@ -226,18 +365,35 @@ func TestDefaultLoggerFactory_CreateLogger(t *testing.T) {
 }
 
 func TestDefaultConfigLoader_Load(t *testing.T) {
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	t.Chdir(t.TempDir())
+
 	loader := &DefaultConfigLoader{}
 
-	// Test with minimal valid arguments
-	args := []string{"test-app", "--target-host-dsn", "http://example.com"}
-
-	_, err := loader.Load(args)
-
-	// This might fail due to missing config file, but we're testing the structure
-	// In a real test, you would set up the environment properly
+	cfg, err := loader.Load([]string{"test-app", "--target-host-dsn", "http://example.com"})
 	if err != nil {
-		// Expected - we need a target host DSN
-		t.Logf("Expected error for minimal config: %v", err)
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if cfg.TargetURL.String() != "http://example.com" {
+		t.Errorf("Expected TargetURL 'http://example.com', got: %s", cfg.TargetURL.String())
+	}
+}
+
+func TestDefaultConfigLoader_Load_MissingTargetHost(t *testing.T) {
+	oldCommandLine := flag.CommandLine
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	defer func() { flag.CommandLine = oldCommandLine }()
+
+	t.Chdir(t.TempDir())
+
+	loader := &DefaultConfigLoader{}
+
+	if _, err := loader.Load([]string{"test-app"}); err == nil {
+		t.Fatal("Expected error for missing target host, got nil")
 	}
 }
 

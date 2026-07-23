@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -68,26 +70,8 @@ func (a *App) Run() error {
 	if translatedConfig.MetricsEnabled {
 		metrics.Init()
 
-		// Start metrics server in background
-		go func() {
-			mux := http.NewServeMux()
-			mux.Handle("/metrics", promhttp.Handler())
-			addr := translatedConfig.ListenIP + ":" + translatedConfig.MetricsPort
-
-			metricsServer := &http.Server{
-				Addr:              addr,
-				Handler:           mux,
-				ReadTimeout:       10 * time.Second,
-				WriteTimeout:      10 * time.Second,
-				IdleTimeout:       60 * time.Second,
-				ReadHeaderTimeout: 5 * time.Second,
-			}
-
-			fmt.Fprintf(a.Writer, "Metrics server listening on http://%s/metrics\n", addr)
-			if err := metricsServer.ListenAndServe(); err != nil {
-				log.Printf("Metrics server error: %v", err)
-			}
-		}()
+		metricsServer := startMetricsServer(translatedConfig, a.Writer)
+		defer metricsServer.Shutdown(context.Background()) //nolint:errcheck
 	}
 
 	logger, err := a.LoggerFactory.CreateLogger()
@@ -102,6 +86,32 @@ func (a *App) Run() error {
 
 	core.Run(translatedConfig, w, a.serverFactory()(translatedConfig))
 	return nil
+}
+
+// startMetricsServer starts the Prometheus metrics endpoint in the background
+// and returns the server so callers can shut it down.
+func startMetricsServer(cfg *config.TranslatedConfig, w io.Writer) *http.Server {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	addr := cfg.ListenIP + ":" + cfg.MetricsPort
+
+	metricsServer := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	fmt.Fprintf(w, "Metrics server listening on http://%s/metrics\n", addr)
+	go func() {
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("Metrics server error: %v", err)
+		}
+	}()
+
+	return metricsServer
 }
 
 // serverFactory returns the configured NewServer factory, falling back to

@@ -36,11 +36,14 @@ lint:
 test:
 	go test -race -v ./...
 
+# Exclude test-only helper packages from coverage, matching codecov.yml
+COVERPKG = $(shell go list ./... | grep -v /internal/testutil)
+
 test-coverage:
-	go test -v -cover ./...
+	go test -v -cover $(COVERPKG)
 
 coverage.out: $(shell find . -name "*.go" -not -path "./vendor/*") go.mod go.sum
-	go test -coverprofile=coverage.out ./...
+	go test -coverprofile=coverage.out $(COVERPKG)
 
 test-coverage-html: coverage.out
 	go tool cover -html=coverage.out -o coverage.html
@@ -49,7 +52,7 @@ test-coverage-html: coverage.out
 test-integration:
 	@if [ -d "tests/integration" ] && [ -n "$$(find tests/integration -name '*.go' 2>/dev/null)" ]; then \
 		echo "Running integration tests..."; \
-		go test -race -v -tags integration ./tests/integration/...; \
+		go test -race -v -count=1 -tags integration ./tests/integration/...; \
 	else \
 		echo "No integration tests found in tests/integration/"; \
 	fi

@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net"
@@ -12,8 +13,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/restinthemiddle/restinthemiddle/internal/testutil"
 )
 
 func buildBinary(t *testing.T) string {
@@ -92,8 +96,15 @@ func startProxy(t *testing.T, bin string, env map[string]string, args []string, 
 	}
 
 	// Wait for readiness by hitting the mock's /test endpoint via the proxy.
-	client := http.Client{Timeout: 500 * time.Millisecond}
-	url := fmt.Sprintf("http://127.0.0.1:%s/test", listenPort)
+	client := &http.Client{Timeout: 500 * time.Millisecond}
+	scheme := "http"
+	if env["TLS_CERT_FILE"] != "" {
+		scheme = "https"
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+	url := fmt.Sprintf("%s://127.0.0.1:%s/test", scheme, listenPort)
 	var lastErr error
 	for i := 0; i < 30; i++ {
 		resp, err := client.Get(url)
@@ -488,5 +499,85 @@ func TestMetricsCustomPort(t *testing.T) {
 
 	if metricsResp.StatusCode != http.StatusOK {
 		t.Fatalf("metrics endpoint status = %d, want %d", metricsResp.StatusCode, http.StatusOK)
+	}
+}
+
+func TestHTTPSProxy(t *testing.T) {
+	bin := buildBinary(t)
+	certFile, keyFile := testutil.GenerateSelfSignedCert(t)
+
+	mock, err := StartMockServer()
+	if err != nil {
+		t.Fatalf("start mock: %v", err)
+	}
+	defer mock.Stop()
+
+	env := map[string]string{
+		"LISTEN_PORT":     getFreePort(t),
+		"TARGET_HOST_DSN": fmt.Sprintf("http://127.0.0.1:%s", mock.GetPort()),
+		"TLS_CERT_FILE":   certFile,
+		"TLS_KEY_FILE":    keyFile,
+	}
+
+	proxy := startProxy(t, bin, env, nil, "")
+	defer proxy.stop()
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	resp, err := client.Get(fmt.Sprintf("https://127.0.0.1:%s/test", proxy.port))
+	if err != nil {
+		t.Fatalf("HTTPS request through proxy: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	if len(mock.GetRequests()) == 0 {
+		t.Fatalf("no request received at mock")
+	}
+}
+
+func TestInvalidTLSConfig(t *testing.T) {
+	bin := buildBinary(t)
+
+	tmpDir := t.TempDir()
+	certFile := filepath.Join(tmpDir, "cert.pem")
+	if err := os.WriteFile(certFile, []byte("dummy cert"), 0600); err != nil {
+		t.Fatalf("failed to write dummy cert: %v", err)
+	}
+
+	// We need a target host DSN for the app to start
+	mock, err := StartMockServer()
+	if err != nil {
+		t.Fatalf("start mock: %v", err)
+	}
+	defer mock.Stop()
+
+	env := map[string]string{
+		"TARGET_HOST_DSN": fmt.Sprintf("http://127.0.0.1:%s", mock.GetPort()),
+		"TLS_CERT_FILE":   certFile,
+		// TLS_KEY_FILE is intentionally missing
+	}
+
+	cmd := exec.Command(bin)
+	cmd.Env = os.Environ()
+	for k, v := range env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+	stderrBuf := &bytes.Buffer{}
+	cmd.Stderr = stderrBuf
+
+	err = cmd.Run()
+	if err == nil {
+		t.Fatal("expected error when TLS_CERT_FILE is set without TLS_KEY_FILE, but got none")
+	}
+	if !strings.Contains(stderrBuf.String(), "both TLSCertFile and TLSKeyFile must be provided") {
+		t.Fatalf("expected TLS pair error on stderr, got:\n%s", stderrBuf.String())
 	}
 }

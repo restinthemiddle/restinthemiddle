@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -28,6 +30,7 @@ type App struct {
 	LoggerFactory LoggerFactory
 	Writer        io.Writer
 	Args          []string
+	NewServer     func(*config.TranslatedConfig) core.HTTPServer
 }
 
 // ConfigLoader defines the interface for loading configuration.
@@ -67,26 +70,8 @@ func (a *App) Run() error {
 	if translatedConfig.MetricsEnabled {
 		metrics.Init()
 
-		// Start metrics server in background
-		go func() {
-			mux := http.NewServeMux()
-			mux.Handle("/metrics", promhttp.Handler())
-			addr := translatedConfig.ListenIP + ":" + translatedConfig.MetricsPort
-
-			metricsServer := &http.Server{
-				Addr:              addr,
-				Handler:           mux,
-				ReadTimeout:       10 * time.Second,
-				WriteTimeout:      10 * time.Second,
-				IdleTimeout:       60 * time.Second,
-				ReadHeaderTimeout: 5 * time.Second,
-			}
-
-			fmt.Fprintf(a.Writer, "Metrics server listening on http://%s/metrics\n", addr)
-			if err := metricsServer.ListenAndServe(); err != nil {
-				log.Printf("Metrics server error: %v", err)
-			}
-		}()
+		metricsServer := startMetricsServer(translatedConfig, a.Writer)
+		defer metricsServer.Shutdown(context.Background()) //nolint:errcheck
 	}
 
 	logger, err := a.LoggerFactory.CreateLogger()
@@ -99,8 +84,45 @@ func (a *App) Run() error {
 
 	fmt.Fprintln(a.Writer, "restinthemiddle started.")
 
-	core.Run(translatedConfig, w, &core.DefaultHTTPServer{})
+	core.Run(translatedConfig, w, a.serverFactory()(translatedConfig))
 	return nil
+}
+
+// startMetricsServer starts the Prometheus metrics endpoint in the background
+// and returns the server so callers can shut it down.
+func startMetricsServer(cfg *config.TranslatedConfig, w io.Writer) *http.Server {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	addr := cfg.ListenIP + ":" + cfg.MetricsPort
+
+	metricsServer := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	fmt.Fprintf(w, "Metrics server listening on http://%s/metrics\n", addr)
+	go func() {
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("Metrics server error: %v", err)
+		}
+	}()
+
+	return metricsServer
+}
+
+// serverFactory returns the configured NewServer factory, falling back to
+// the default HTTP server so a zero-value App cannot panic.
+func (a *App) serverFactory() func(*config.TranslatedConfig) core.HTTPServer {
+	if a.NewServer != nil {
+		return a.NewServer
+	}
+	return func(c *config.TranslatedConfig) core.HTTPServer {
+		return core.NewDefaultHTTPServer(c)
+	}
 }
 
 // CreateLogger creates a production logger with caller disabled.
@@ -200,6 +222,9 @@ type FlagVars struct {
 	readHeaderTimeout   int
 	writeTimeout        int
 	idleTimeout         int
+	tlsCertFile         string
+	tlsKeyFile          string
+	tlsMinVersion       string
 }
 
 // setupFlags initializes all command line flags.
@@ -230,6 +255,9 @@ func setupFlags() *FlagVars {
 	flag.IntVar(&flagVars.readHeaderTimeout, "read-header-timeout", config.DefaultReadHeaderTimeout, "Read header timeout in seconds")
 	flag.IntVar(&flagVars.writeTimeout, "write-timeout", config.DefaultWriteTimeout, "Write timeout in seconds")
 	flag.IntVar(&flagVars.idleTimeout, "idle-timeout", config.DefaultIdleTimeout, "Idle timeout in seconds")
+	flag.StringVar(&flagVars.tlsCertFile, "tls-cert-file", "", "Path to TLS certificate file")
+	flag.StringVar(&flagVars.tlsKeyFile, "tls-key-file", "", "Path to TLS private key file")
+	flag.StringVar(&flagVars.tlsMinVersion, "tls-min-version", "", "Minimum TLS version (1.2 or 1.3, default 1.2)")
 
 	return flagVars
 }
@@ -254,6 +282,9 @@ func setupViperDefaults(v *viper.Viper) {
 		"readHeaderTimeout":   config.DefaultReadHeaderTimeout,
 		"writeTimeout":        config.DefaultWriteTimeout,
 		"idleTimeout":         config.DefaultIdleTimeout,
+		"tlsCertFile":         "",
+		"tlsKeyFile":          "",
+		"tlsMinVersion":       "",
 	}
 
 	for key, value := range defaults {
@@ -280,6 +311,9 @@ func setupViperEnvBindings(v *viper.Viper) {
 	v.BindEnv("readHeaderTimeout", "READ_HEADER_TIMEOUT")     //nolint:errcheck
 	v.BindEnv("writeTimeout", "WRITE_TIMEOUT")                //nolint:errcheck
 	v.BindEnv("idleTimeout", "IDLE_TIMEOUT")                  //nolint:errcheck
+	v.BindEnv("tlsCertFile", "TLS_CERT_FILE")                 //nolint:errcheck
+	v.BindEnv("tlsKeyFile", "TLS_KEY_FILE")                   //nolint:errcheck
+	v.BindEnv("tlsMinVersion", "TLS_MIN_VERSION")             //nolint:errcheck
 }
 
 // setupConfigPaths sets up configuration file paths for viper.
@@ -355,6 +389,15 @@ func updateConfigFromFlags(cfg *config.SourceConfig, flagVars *FlagVars) {
 	}
 	if flagChanged("idle-timeout") {
 		cfg.IdleTimeout = flagVars.idleTimeout
+	}
+	if flagChanged("tls-cert-file") {
+		cfg.TLSCertFile = flagVars.tlsCertFile
+	}
+	if flagChanged("tls-key-file") {
+		cfg.TLSKeyFile = flagVars.tlsKeyFile
+	}
+	if flagChanged("tls-min-version") {
+		cfg.TLSMinVersion = flagVars.tlsMinVersion
 	}
 }
 

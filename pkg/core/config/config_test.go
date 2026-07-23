@@ -2,6 +2,8 @@ package core_config
 
 import (
 	"bytes"
+	"crypto/tls"
+	"errors"
 	"io"
 	"os"
 	"regexp"
@@ -231,6 +233,9 @@ func TestPrintConfig(t *testing.T) {
 		WriteTimeout:        20,
 		IdleTimeout:         300,
 		ReadHeaderTimeout:   5,
+		TLSCertFile:         "cert.pem",
+		TLSKeyFile:          "key.pem",
+		TLSMinVersion:       "1.3",
 	}
 
 	cfg.PrintConfig()
@@ -265,6 +270,9 @@ func TestPrintConfig(t *testing.T) {
 		"writeTimeout: 20",
 		"idleTimeout: 300",
 		"readHeaderTimeout: 5",
+		"tlsCertFile: cert.pem",
+		"tlsKeyFile: key.pem",
+		`tlsMinVersion: "1.3"`,
 	}
 
 	for _, expected := range expectedContents {
@@ -324,6 +332,33 @@ func TestNewTranslatedConfigurationWithRegexps(t *testing.T) {
 	}
 }
 
+func TestNewTranslatedConfigurationWithEmptyRegexps(t *testing.T) {
+	cfg := &SourceConfig{
+		TargetHostDSN:       "http://example.com",
+		Exclude:             "",
+		ExcludePostBody:     "",
+		ExcludeResponseBody: "",
+	}
+
+	translated, err := cfg.NewTranslatedConfiguration()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Empty regexps should result in nil
+	if translated.ExcludeRegexp != nil {
+		t.Error("Expected ExcludeRegexp to be nil for empty regexp")
+	}
+
+	if translated.ExcludePostBodyRegexp != nil {
+		t.Error("Expected ExcludePostBodyRegexp to be nil for empty regexp")
+	}
+
+	if translated.ExcludeResponseBodyRegexp != nil {
+		t.Error("Expected ExcludeResponseBodyRegexp to be nil for empty regexp")
+	}
+}
+
 func TestNewTranslatedConfigurationWithInvalidRegexps(t *testing.T) {
 	cfg := &SourceConfig{
 		TargetHostDSN:       "http://example.com",
@@ -351,29 +386,70 @@ func TestNewTranslatedConfigurationWithInvalidRegexps(t *testing.T) {
 	}
 }
 
-func TestNewTranslatedConfigurationWithEmptyRegexps(t *testing.T) {
+func TestConfigTLSMismatch(t *testing.T) {
 	cfg := &SourceConfig{
-		TargetHostDSN:       "http://example.com",
-		Exclude:             "",
-		ExcludePostBody:     "",
-		ExcludeResponseBody: "",
+		TargetHostDSN: "http://localhost:8080",
+		TLSCertFile:   "cert.pem",
+		// TLSKeyFile missing
 	}
+	_, err := cfg.NewTranslatedConfiguration()
+	if !errors.Is(err, ErrTLSFilePairIncomplete) {
+		t.Errorf("expected ErrTLSFilePairIncomplete, got: %v", err)
+	}
+}
 
+func TestConfigTLSSuccess(t *testing.T) {
+	cfg := &SourceConfig{
+		TargetHostDSN: "http://localhost:8080",
+		TLSCertFile:   "cert.pem",
+		TLSKeyFile:    "key.pem",
+		TLSMinVersion: "1.3",
+	}
 	translated, err := cfg.NewTranslatedConfiguration()
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Empty regexps should result in nil
-	if translated.ExcludeRegexp != nil {
-		t.Error("Expected ExcludeRegexp to be nil for empty regexp")
+	if translated.TLSCertFile != "cert.pem" {
+		t.Errorf("Expected TLSCertFile cert.pem, got %s", translated.TLSCertFile)
+	}
+	if translated.TLSKeyFile != "key.pem" {
+		t.Errorf("Expected TLSKeyFile key.pem, got %s", translated.TLSKeyFile)
+	}
+	if translated.TLSMinVersion != tls.VersionTLS13 {
+		t.Errorf("Expected TLSMinVersion 1.3 (tls.VersionTLS13), got %x", translated.TLSMinVersion)
+	}
+}
+
+func TestConfigTLSMinVersionMapping(t *testing.T) {
+	tests := []struct {
+		version     string
+		expected    uint16
+		expectError bool
+	}{
+		{"1.2", tls.VersionTLS12, false},
+		{"1.3", tls.VersionTLS13, false},
+		{"invalid", 0, true},
+		{"", tls.VersionTLS12, false}, // default to 1.2
 	}
 
-	if translated.ExcludePostBodyRegexp != nil {
-		t.Error("Expected ExcludePostBodyRegexp to be nil for empty regexp")
-	}
-
-	if translated.ExcludeResponseBodyRegexp != nil {
-		t.Error("Expected ExcludeResponseBodyRegexp to be nil for empty regexp")
+	for _, tt := range tests {
+		cfg := &SourceConfig{
+			TargetHostDSN: "http://localhost:8080",
+			TLSMinVersion: tt.version,
+		}
+		translated, err := cfg.NewTranslatedConfiguration()
+		if tt.expectError {
+			if !errors.Is(err, ErrUnsupportedTLSMinVersion) {
+				t.Errorf("Expected ErrUnsupportedTLSMinVersion for version %s, got: %v", tt.version, err)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("Unexpected error for version %s: %v", tt.version, err)
+			}
+			if translated.TLSMinVersion != tt.expected {
+				t.Errorf("For version %s, expected %x, got %x", tt.version, tt.expected, translated.TLSMinVersion)
+			}
+		}
 	}
 }

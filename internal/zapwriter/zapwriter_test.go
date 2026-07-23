@@ -62,6 +62,77 @@ func TestHTTPTiming_MarshalLogObject(t *testing.T) {
 	}
 }
 
+func TestHTTPTiming_MarshalLogObject_EncodesAllFields(t *testing.T) {
+	timing := HTTPTiming{
+		GetConn:                  time.Date(2025, 7, 9, 10, 0, 0, 0, time.UTC),
+		GotConn:                  time.Date(2025, 7, 9, 10, 0, 1, 0, time.UTC),
+		ConnEstDuration:          time.Second,
+		TCPConnectionStart:       time.Date(2025, 7, 9, 10, 0, 0, 500000000, time.UTC),
+		TCPConnectionEstablished: time.Date(2025, 7, 9, 10, 0, 0, 800000000, time.UTC),
+		TCPConnectionDuration:    300 * time.Millisecond,
+		RoundTripStart:           time.Date(2025, 7, 9, 10, 0, 1, 0, time.UTC),
+		RoundTripEnd:             time.Date(2025, 7, 9, 10, 0, 2, 0, time.UTC),
+		RoundTripDuration:        time.Second,
+		GotFirstResponseByte:     time.Date(2025, 7, 9, 10, 0, 1, 500000000, time.UTC),
+		TLSHandshakeStart:        time.Date(2025, 7, 9, 10, 0, 0, 200000000, time.UTC),
+		TLSHandshakeDone:         time.Date(2025, 7, 9, 10, 0, 0, 400000000, time.UTC),
+		TLSHandshakeDuration:     200 * time.Millisecond,
+	}
+
+	enc := zapcore.NewMapObjectEncoder()
+	if err := timing.MarshalLogObject(enc); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	expectedTimes := map[string]time.Time{
+		"get_conn":                   timing.GetConn,
+		"got_conn":                   timing.GotConn,
+		"tcp_connection_start":       timing.TCPConnectionStart,
+		"tcp_connection_established": timing.TCPConnectionEstablished,
+		"roundtrip_start":            timing.RoundTripStart,
+		"roundtrip_end":              timing.RoundTripEnd,
+		"got_first_response_byte":    timing.GotFirstResponseByte,
+		"tls_handshake_start":        timing.TLSHandshakeStart,
+		"tls_handshake_done":         timing.TLSHandshakeDone,
+	}
+	for key, expected := range expectedTimes {
+		value, ok := enc.Fields[key]
+		if !ok {
+			t.Errorf("Expected field %s not encoded", key)
+			continue
+		}
+		got, ok := value.(time.Time)
+		if !ok {
+			t.Errorf("Expected field %s to be time.Time, got %T", key, value)
+			continue
+		}
+		if !got.Equal(expected) {
+			t.Errorf("Expected field %s to be %v, got %v", key, expected, got)
+		}
+	}
+
+	expectedDurations := map[string]time.Duration{
+		"conn_establish_duration": timing.ConnEstDuration,
+		"tcp_connection_duration": timing.TCPConnectionDuration,
+		"roundtrip_duration":      timing.RoundTripDuration,
+		"tls_handshake_duration":  timing.TLSHandshakeDuration,
+	}
+	for key, expected := range expectedDurations {
+		value, ok := enc.Fields[key]
+		if !ok {
+			t.Errorf("Expected field %s not encoded", key)
+			continue
+		}
+		if value != expected {
+			t.Errorf("Expected field %s to be %v, got %v", key, expected, value)
+		}
+	}
+
+	if len(enc.Fields) != len(expectedTimes)+len(expectedDurations) {
+		t.Errorf("Expected %d encoded fields, got %d", len(expectedTimes)+len(expectedDurations), len(enc.Fields))
+	}
+}
+
 func TestNewHTTPTimingFromCore(t *testing.T) {
 	coreTime := time.Date(2025, 7, 9, 10, 0, 0, 0, time.UTC)
 	coreTiming := &transport.HTTPTiming{

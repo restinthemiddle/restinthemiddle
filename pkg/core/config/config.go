@@ -1,6 +1,8 @@
 package core_config
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -28,6 +30,16 @@ const (
 	DefaultReadHeaderTimeout   = 0
 	DefaultWriteTimeout        = 0
 	DefaultIdleTimeout         = 0
+	TLSVersion12               = "1.2"
+	TLSVersion13               = "1.3"
+)
+
+// Common configuration errors.
+var (
+	ErrEmptyTargetHostDSN       = errors.New("target host DSN is empty")
+	ErrInvalidTargetHostDSN     = errors.New("invalid target host DSN")
+	ErrTLSFilePairIncomplete    = errors.New("both TLSCertFile and TLSKeyFile must be provided for TLS")
+	ErrUnsupportedTLSMinVersion = errors.New("unsupported TLS minimum version")
 )
 
 // SourceConfig holds the raw core configuration.
@@ -49,6 +61,9 @@ type SourceConfig struct {
 	WriteTimeout        int               `yaml:"writeTimeout"`
 	IdleTimeout         int               `yaml:"idleTimeout"`
 	ReadHeaderTimeout   int               `yaml:"readHeaderTimeout"`
+	TLSCertFile         string            `yaml:"tlsCertFile"`
+	TLSKeyFile          string            `yaml:"tlsKeyFile"`
+	TLSMinVersion       string            `yaml:"tlsMinVersion"`
 }
 
 // TranslatedConfig holds the compiled core configuration.
@@ -70,16 +85,23 @@ type TranslatedConfig struct {
 	WriteTimeout              time.Duration
 	IdleTimeout               time.Duration
 	ReadHeaderTimeout         time.Duration
+	TLSCertFile               string
+	TLSKeyFile                string
+	TLSMinVersion             uint16
 }
 
 func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 	if s.TargetHostDSN == "" {
-		return nil, fmt.Errorf("target host DSN is empty")
+		return nil, ErrEmptyTargetHostDSN
+	}
+
+	if (s.TLSCertFile != "" && s.TLSKeyFile == "") || (s.TLSCertFile == "" && s.TLSKeyFile != "") {
+		return nil, ErrTLSFilePairIncomplete
 	}
 
 	targetURL := getTargetURL(s.TargetHostDSN)
 	if targetURL == nil {
-		return nil, fmt.Errorf("invalid target host DSN: %s", s.TargetHostDSN)
+		return nil, fmt.Errorf("%w: %s", ErrInvalidTargetHostDSN, s.TargetHostDSN)
 	}
 
 	// Use configured timeout values directly.
@@ -88,6 +110,17 @@ func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 	writeTimeout := s.WriteTimeout
 	idleTimeout := s.IdleTimeout
 	readHeaderTimeout := s.ReadHeaderTimeout
+
+	// TLS Min Version mapping
+	var minVersion uint16
+	switch s.TLSMinVersion {
+	case "", TLSVersion12:
+		minVersion = tls.VersionTLS12
+	case TLSVersion13:
+		minVersion = tls.VersionTLS13
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedTLSMinVersion, s.TLSMinVersion)
+	}
 
 	return &TranslatedConfig{
 		TargetURL:                 targetURL,
@@ -107,6 +140,9 @@ func (s *SourceConfig) NewTranslatedConfiguration() (*TranslatedConfig, error) {
 		WriteTimeout:              time.Duration(writeTimeout) * time.Second,
 		IdleTimeout:               time.Duration(idleTimeout) * time.Second,
 		ReadHeaderTimeout:         time.Duration(readHeaderTimeout) * time.Second,
+		TLSCertFile:               s.TLSCertFile,
+		TLSKeyFile:                s.TLSKeyFile,
+		TLSMinVersion:             minVersion,
 	}, nil
 }
 

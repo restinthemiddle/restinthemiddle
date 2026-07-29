@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.11](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.10...v2.3.11) (2026-07-29)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/prometheus/client_golang to v1.24.1 ([9efe13d](https://github.com/restinthemiddle/restinthemiddle/commit/9efe13d378ef251628f11b2b6a56d9870c7a18d9))
+
 ## [2.3.10](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.9...v2.3.10) (2026-07-12)
 
 

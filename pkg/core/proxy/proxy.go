@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -103,7 +104,15 @@ func (p *DefaultReverseProxy) ModifyResponse(f func(*http.Response) error) {
 
 func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (ReverseProxy, error) { //nolint:gocognit
 	targetQuery := target.RawQuery
-	director := func(req *http.Request) {
+	rewrite := func(pr *httputil.ProxyRequest) {
+		req := pr.Out
+
+		for _, h := range []string{"Forwarded", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto"} {
+			if values, ok := pr.In.Header[h]; ok {
+				req.Header[h] = values
+			}
+		}
+
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 
@@ -163,6 +172,13 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (R
 		for key, value := range cfg.Headers {
 			req.Header.Set(key, value)
 		}
+
+		if clientIP, _, err := net.SplitHostPort(pr.In.RemoteAddr); err == nil {
+			if prior := req.Header.Get("X-Forwarded-For"); prior != "" {
+				clientIP = prior + ", " + clientIP
+			}
+			req.Header.Set("X-Forwarded-For", clientIP)
+		}
 	}
 
 	profilingTransport, err := transport.NewProfilingTransport(cfg)
@@ -172,7 +188,7 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (R
 
 	return &DefaultReverseProxy{
 		ReverseProxy: &httputil.ReverseProxy{
-			Director:  director,
+			Rewrite:   rewrite,
 			Transport: profilingTransport,
 		},
 	}, nil

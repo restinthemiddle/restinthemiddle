@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.12](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.11...v2.3.12) (2026-08-24)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/text to v0.41.0 ([4f7c86c](https://github.com/restinthemiddle/restinthemiddle/commit/4f7c86cdf3379cd60183168b58d8ad64e453c781))
+* **proxy:** replace deprecated ReverseProxy.Director with Rewrite ([94b02b1](https://github.com/restinthemiddle/restinthemiddle/commit/94b02b16494cd8794dfd2089260afecb533817d6))
+
 ## [2.3.11](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.10...v2.3.11) (2026-07-29)
 
 

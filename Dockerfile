@@ -1,4 +1,4 @@
-FROM golang:1.27.1-alpine AS build-env
+FROM golang:1.27.2-alpine AS build-env
 
 ARG VERSION=dev
 ARG BUILD_DATE=unknown

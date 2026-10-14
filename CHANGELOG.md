@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.15](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.14...v2.3.15) (2026-10-14)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/text to v0.43.0 ([fa85a09](https://github.com/restinthemiddle/restinthemiddle/commit/fa85a09af8708864dfc7b0d7730f8806926a2e42))
+
 ## [2.3.14](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.13...v2.3.14) (2026-10-12)
 
 

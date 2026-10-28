@@ -121,7 +121,8 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (R
 			req.Header.Set("X-Request-Id", requestID.String())
 		}
 
-		if req.Header.Get("X-Forwarded-Host") == "" {
+		hostForwarded := req.Header.Get("X-Forwarded-Host") != ""
+		if !hostForwarded {
 			req.Header.Set("X-Forwarded-Host", target.Host)
 		}
 
@@ -129,7 +130,9 @@ func newSingleHostReverseProxy(target *url.URL, cfg *config.TranslatedConfig) (R
 			req.Header.Set("X-Forwarded-Proto", target.Scheme)
 		}
 
-		if req.Header.Get("X-Forwarded-Port") == "" {
+		// The backend port only describes the host we set ourselves; next to a forwarded host it
+		// would be appended to the client-facing host by backends that trust the header.
+		if !hostForwarded && req.Header.Get("X-Forwarded-Port") == "" {
 			if target.Port() != "" {
 				req.Header.Set("X-Forwarded-Port", target.Port())
 			} else {

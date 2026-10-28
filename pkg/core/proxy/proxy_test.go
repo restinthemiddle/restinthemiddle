@@ -3,6 +3,7 @@ package proxy
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -195,6 +196,19 @@ func TestProxyDirectorHeaders(t *testing.T) {
 				"X-Forwarded-Proto": "original-proto",
 				"X-Forwarded-Port":  "original-port",
 				"X-Forwarded-For":   "original-for, 192.0.2.1", // Client IP is appended
+			},
+		},
+		{
+			name:      "X-Forwarded-Port is not derived from the backend when X-Forwarded-Host is forwarded",
+			targetURL: "http://example.com",
+			requestHeaders: map[string]string{
+				"X-Forwarded-Host":  "original-host.com",
+				"X-Forwarded-Proto": "https",
+			},
+			expectedHeaders: map[string]string{
+				"X-Forwarded-Host":  "original-host.com",
+				"X-Forwarded-Proto": "https",
+				"X-Forwarded-Port":  "",
 			},
 		},
 		{
@@ -643,5 +657,29 @@ func TestDefaultReverseProxyModifyResponse(t *testing.T) {
 
 	if !called {
 		t.Error("ModifyResponse function was not called")
+	}
+}
+
+func TestProxyRewriteDefaultsForwardedPortFromSchemeForPortlessTarget(t *testing.T) {
+	for scheme, expectedPort := range map[string]string{"https": "443", "http": "80"} {
+		t.Run(scheme, func(t *testing.T) {
+			targetURL, err := url.Parse(scheme + "://example.com")
+			if err != nil {
+				t.Fatalf("Failed to parse target URL: %v", err)
+			}
+
+			reverseProxy, err := newSingleHostReverseProxy(targetURL, &config.TranslatedConfig{TargetURL: targetURL})
+			if err != nil {
+				t.Fatalf("Failed to create reverse proxy: %v", err)
+			}
+
+			in := httptest.NewRequest("GET", "/test", nil)
+			pr := &httputil.ProxyRequest{In: in, Out: in.Clone(in.Context())}
+			reverseProxy.(*DefaultReverseProxy).Rewrite(pr)
+
+			if actual := pr.Out.Header.Get("X-Forwarded-Port"); actual != expectedPort {
+				t.Errorf("Expected X-Forwarded-Port %q, got %q", expectedPort, actual)
+			}
+		})
 	}
 }

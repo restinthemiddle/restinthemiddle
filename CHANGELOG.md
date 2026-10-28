@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.16](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.15...v2.3.16) (2026-10-28)
+
+
+### Bug Fixes
+
+* **proxy:** keep the backend port out of X-Forwarded-Port next to a forwarded host ([17a0d3a](https://github.com/restinthemiddle/restinthemiddle/commit/17a0d3af92ce7919187284d04b2901f1d0c3d34a))
+
 ## [2.3.15](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.14...v2.3.15) (2026-10-14)
 
 

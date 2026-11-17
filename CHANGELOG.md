@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.17](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.16...v2.3.17) (2026-11-17)
+
+
+### Bug Fixes
+
+* **deps:** update go dependencies ([815cb7f](https://github.com/restinthemiddle/restinthemiddle/commit/815cb7f9b8481f4df89763ea31951234b29ac150))
+
 ## [2.3.16](https://github.com/restinthemiddle/restinthemiddle/compare/v2.3.15...v2.3.16) (2026-10-28)
 
 
